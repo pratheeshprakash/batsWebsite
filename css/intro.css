@@ -1,0 +1,89 @@
+/* ── Intro Loading Overlay ────────────────────────────────────────── */
+.intro-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: var(--bg-app);
+  backdrop-filter: var(--blur-panel);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-main);
+  transition: opacity 0.8s ease-in-out, visibility 0.8s ease-in-out, transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.intro-overlay.fade-out {
+  opacity: 0;
+  visibility: hidden;
+  transform: scale(1.02);
+  pointer-events: none;
+}
+
+.intro-content {
+  text-align: center;
+  animation: slideUpFade 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.intro-logo {
+  color: #a78bfa;
+  margin-bottom: 24px;
+  animation: pulseLogo 2.5s infinite alternate ease-in-out;
+}
+
+.intro-logo svg {
+  filter: drop-shadow(0 0 12px rgba(167, 139, 250, 0.4));
+}
+
+.intro-title {
+  font-family: var(--font-display);
+  font-size: 4rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin: 0 0 8px 0;
+  background: linear-gradient(135deg, #ffffff 0%, #a78bfa 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 4px 24px rgba(0,0,0,0.2);
+}
+
+.intro-subtitle {
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-main);
+  margin: 0 0 24px 0;
+  opacity: 0.9;
+  background: linear-gradient(90deg, #a78bfa, #ffffff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.intro-motto {
+  font-size: 1.25rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin: 0;
+  font-weight: 400;
+  animation: fadeDelay 1.5s ease-in-out forwards;
+  opacity: 0;
+}
+
+@keyframes slideUpFade {
+  0% { opacity: 0; transform: translateY(40px) scale(0.95); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes pulseLogo {
+  0% { transform: scale(1); }
+  100% { transform: scale(1.08); }
+}
+
+@keyframes fadeDelay {
+  0% { opacity: 0; transform: translateY(10px); }
+  40% { opacity: 0; transform: translateY(10px); }
+  100% { opacity: 1; transform: translateY(0); }
+}

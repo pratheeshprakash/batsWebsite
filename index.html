@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>B.A.T.S. — Brand & Application Tracking System</title>
+    <meta name="description" content="Personal brand management: CV, biography, brand manual and notes in one place.">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="stylesheet" href="/css/vars.css?v=2">
+    <link rel="stylesheet" href="/css/layout.css?v=2">
+    <link rel="stylesheet" href="/css/timeline.css?v=2">
+    <link rel="stylesheet" href="/css/paper-editor.css?v=2">
+    <link rel="stylesheet" href="/css/modals.css?v=2">
+    <link rel="stylesheet" href="/css/intro.css?v=2">
+    <link rel="stylesheet" href="/css/auth.css?v=2">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsdiff/5.1.0/diff.min.js"></script>
+    <script type="module" src="https://cdn.jsdelivr.net/npm/@myriaddreamin/typst.ts/dist/esm/contrib/all-in-one-lite.bundle.js" id="typst"></script>
+</head>
+<body>
+<!-- ── Intro Loading Overlay ── -->
+<div id="introLoadingOverlay" class="intro-overlay">
+  <div class="intro-content">
+    <div class="intro-logo">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+    </div>
+    <h1 class="intro-title">B.A.T.S.</h1>
+    <p class="intro-subtitle">Brand & Application Tracking System</p>
+    <p class="intro-motto">The Anti-ATS.<br>Take control of your career trajectory.</p>
+  </div>
+</div>
+
+<!-- ── Auth Overlay (Login/Register) ── -->
+<div id="authOverlay" class="auth-overlay" style="display: none;">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+    </div>
+    <h1 class="auth-title">B.A.T.S.</h1>
+    <p class="auth-subtitle">Brand & Application Tracking System</p>
+    
+    <div class="auth-actions" style="margin-top: 24px; width: 100%; display: flex; flex-direction: column; gap: 12px; align-items: center;">
+      <button id="btnGoogleSignIn" class="btn btn-primary auth-submit-btn" style="display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; height: 44px; font-weight: 500; font-size: 0.9rem; padding: 0 16px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" style="margin-right: 4px;">
+          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22c-.23-.66-.35-1.36-.35-2.09z" fill="#FBBC05"/>
+          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+        </svg>
+        Sign In with Google
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="app-shell">
+
+
+
+  <!-- ── Sidebar ─────────────────────────────────────────── -->
+  <aside class="sidebar">
+
+    <div class="sidebar-brand">
+      <div class="brand-mark">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+      </div>
+      <div class="brand-text">
+        <span class="brand-name">B.A.T.S.</span>
+        <span class="brand-sub">Brand & Application Tracking System</span>
+      </div>
+    </div>
+
+    <!-- Document type navigation -->
+    <nav class="doc-nav" id="docNav">
+      <!-- Populated dynamically via JS -->
+    </nav>
+    <div style="padding: 0 12px; margin-bottom: 12px;">
+      <button id="btnOpenAddTab" class="nav-pill" style="width: 100%; justify-content: center; border: 1px dashed var(--border-light); background: transparent; font-size: 0.72rem; color: var(--text-3); font-weight: 500; height: 32px; padding: 0 10px;">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 6px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add Tab
+      </button>
+    </div>
+
+    <!-- Shared side panel: same for all 4 vault types -->
+    <div id="sidePanel" class="side-panel">
+      <div class="search-wrap">
+        <svg class="search-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" id="searchBar" class="search-input" placeholder="Search versions…">
+      </div>
+
+      <div class="panel-section-label">
+        VERSIONS
+        <button id="btnBranchNew" class="btn-ghost-xs" title="New version">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+          New
+        </button>
+      </div>
+      <div class="timeline-list" id="timelineList"></div>
+
+      <!-- Links/Submissions — available for all vault types -->
+      <div id="submissionsPanel" class="sidebar-submissions" style="display:flex;flex-direction:column;">
+        <div class="panel-section-label collapsible-header" id="submissionsHeader" style="margin-top:4px;">
+          <span style="display:inline-flex; align-items:center;">
+            <svg id="submissionsChevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="transition: transform var(--transition-fast); margin-right: 6px;"><polyline points="6 9 12 15 18 9"/></svg>
+            LINKED TO
+          </span>
+          <span id="submissionCountBadge" class="nav-badge">0</span>
+        </div>
+        <div id="submissionsContent" class="collapsible-content" style="display:flex; flex-direction:column;">
+          <div id="submissionList" class="submission-list"></div>
+          <form class="submission-form" id="addSubmissionForm">
+            <input type="text" id="addSubmissionInput" class="sub-input" placeholder="Add company / role…" required>
+            <button type="submit" class="btn-add-xs">+</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Notes-only: Template editor shortcut (hidden for other tabs) -->
+      <div id="noteTemplateSection" style="display:none;border-top:1px solid var(--border);margin-top:10px;padding-top:8px;">
+        <div class="panel-section-label">
+          NOTE TEMPLATE
+          <button id="btnEditTemplate" class="btn-ghost-xs" title="Edit the note creation template">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            Edit
+          </button>
+        </div>
+        <p style="font-size:.68rem;color:var(--text-3);margin:4px 0 0;line-height:1.4;">New notes are created from this template.</p>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- ── Main Content ──────────────────────────────────────── -->
+  <main class="main-area">
+
+    <header class="topbar">
+      <div class="topbar-meta">
+        <h1 class="topbar-title" id="activeCvTitle">Select a document</h1>
+        <div class="topbar-sub">
+          <div id="activeCvDate" class="custom-date-picker" style="display:none; align-items:center; position:relative;">
+            <button id="btnDatePicker" class="btn btn-ghost" style="padding:0; height:auto; border:none; background:transparent; font-size:0.8rem; color:var(--text-muted); display:flex; align-items:center; gap:6px; font-family:inherit; cursor:pointer; outline:none; transition: color 0.2s;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              <span id="datePickerValue"></span>
+            </button>
+            <div id="calendarDropdown" class="calendar-dropdown" style="display:none; position:absolute; top:130%; left:0; background:var(--bg-panel); border:1px solid var(--border-light); border-radius:8px; box-shadow:0 10px 25px rgba(0,0,0,0.6); padding:12px; z-index:1000; width:220px; font-family:var(--font-body); user-select:none;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <button id="btnPrevMonth" class="btn btn-ghost sm" style="padding:2px 8px; min-width:auto; border:none;">&lt;</button>
+                <span id="calendarMonthYear" style="font-size:0.85rem; font-weight:600; color:var(--text-main);"></span>
+                <button id="btnNextMonth" class="btn btn-ghost sm" style="padding:2px 8px; min-width:auto; border:none;">&gt;</button>
+              </div>
+              <div style="display:grid; grid-template-columns:repeat(7, 1fr); text-align:center; font-size:0.7rem; font-weight:700; color:var(--text-muted); margin-bottom:8px; text-transform:uppercase; letter-spacing:0.05em;">
+                <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
+              </div>
+              <div id="calendarDaysGrid" style="display:grid; grid-template-columns:repeat(7, 1fr); gap:4px; text-align:center;">
+                <!-- Filled dynamically -->
+              </div>
+            </div>
+          </div>
+          <span id="activeCvLocation" style="display:none; align-items:center; gap:6px;"></span>
+        </div>
+      </div>
+      <div class="topbar-actions" id="topbarActions">
+        <!-- Save — all types -->
+        <button id="btnSaveDetails" class="btn btn-primary">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
+          Save
+          <span id="unsavedDot" class="unsaved-dot" style="display:none;"></span>
+        </button>
+        <!-- Diff — all types -->
+        <button id="btnCompare" class="btn btn-ghost">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3h5v5M4 20L20 4M21 16v5h-5M4 4l16 16"/></svg>
+          Diff
+        </button>
+        <!-- PDF / Export — all types -->
+        <button id="btnDownloadPdf" class="btn btn-ghost">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+          PDF
+        </button>
+        <!-- Theme — all types -->
+        <button id="btnChooseTheme" class="btn btn-ghost" title="Choose Paper Theme">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 14.7255 3.09032 17.1962 4.85857 19C5.32674 19.475 5.23963 20.2575 4.8214 20.7818C4.30154 21.4335 4.60627 22 5.43712 22H12Z"/><circle cx="7.5" cy="10.5" r="1.5" fill="currentColor"/><circle cx="11.5" cy="7.5" r="1.5" fill="currentColor"/><circle cx="16.5" cy="9.5" r="1.5" fill="currentColor"/><circle cx="15.5" cy="14.5" r="1.5" fill="currentColor"/></svg>
+          Theme
+        </button>
+        <!-- Set Reminder — all types, most useful for Notes -->
+        <button id="btnSetReminder" class="btn btn-ghost btn-remind" title="Set a reminder on this document">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          Remind
+        </button>
+        <!-- Promote Main -->
+        <button id="btnPromoteMain" class="btn btn-ghost" title="Promote to Main Branch (Removes parent dependency)" style="display:none;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          Make Main
+        </button>
+        <!-- Delete — all types -->
+        <button id="btnDeleteCv" class="btn btn-danger-ghost">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          Delete
+        </button>
+        <!-- Reminders Inbox (Global) -->
+        <div style="width: 1px; height: 20px; background: var(--border); margin: 0 8px;"></div>
+        <button id="btnOpenRemindersInbox" class="btn btn-ghost" style="position: relative;" title="Reminders Inbox">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span id="globalReminderBadge" style="display:none;"></span>
+        </button>
+        <!-- Logout Button -->
+        <button id="btnLogout" class="btn btn-ghost" title="Logout" style="margin-left: 8px;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- ── Reminders Slide-Out Panel ── -->
+    <div id="remindersOverlay" class="reminders-overlay"></div>
+    <div id="remindersInboxPanel" class="reminders-slide-panel">
+      <div class="reminders-panel-header">
+        <h3>Reminders Inbox</h3>
+        <button id="btnCloseRemindersInbox" class="btn-ghost-xs">✕</button>
+      </div>
+      <div class="reminders-panel-body" id="remindersInboxList">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+
+    <!-- Shared paper-sheet editor — used by all 4 vault types -->
+    <div id="cvEditorView" class="editor-canvas">
+      <div id="previewLoader" class="canvas-loader" style="display:none;">
+        <div class="spinner"></div>
+        <span>Compiling…</span>
+      </div>
+      <div class="paper-scroll">
+        <div id="paperSheet" class="paper-sheet">
+          <div class="empty-state">
+            <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            <p>Select a version from the sidebar</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- Toast stack -->
+<div id="toastContainer" class="toast-stack"></div>
+
+<!-- Delete modal -->
+<div class="modal-veil" id="deleteModal" style="display:none;">
+  <div class="modal-card w-sm">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+      <div class="modal-icn danger" style="flex-shrink:0;margin-bottom:0;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+      </div>
+      <h3 class="modal-heading" style="margin:0;flex:1;">Delete Version?</h3>
+      <button class="btn btn-ghost sm" id="btnDeleteClose">✕</button>
+    </div>
+    <p class="modal-desc" id="deleteModalBody">This cannot be undone.</p>
+    <div class="modal-row">
+      <button class="btn btn-ghost" id="btnDeleteCancel">Cancel</button>
+      <button class="btn btn-danger" id="btnDeleteConfirm">Delete permanently</button>
+    </div>
+  </div>
+</div>
+
+<!-- Branch / New Version modal -->
+<div class="modal-veil" id="branchOverlay" style="display:none;">
+  <div class="modal-card w-sm">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+      <div class="modal-icn primary" style="flex-shrink:0;margin-bottom:0;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg>
+      </div>
+      <h3 class="modal-heading" id="branchModalTitle" style="margin:0;flex:1;">New Version</h3>
+      <button class="btn btn-ghost sm" id="btnBranchClose">✕</button>
+    </div>
+    <p class="modal-desc">Fork a version with a new focused direction.</p>
+    <label class="modal-lbl">Base Version</label>
+    <select id="branchSelectBase" class="modal-sel"></select>
+    <label class="modal-lbl">Version Name <span class="modal-hint">(e.g. robotics-denmark-linak)</span></label>
+    <input type="text" id="branchInputSlug" class="modal-inp" placeholder="my-focus-name">
+    <span class="modal-foot">Saved as <code>YYYY-MM-DD-version-name.yaml</code></span>
+    <div class="modal-row">
+      <button class="btn btn-ghost" id="btnCloseBranch">Cancel</button>
+      <button class="btn btn-primary" id="btnCreateBranchSubmit">Create</button>
+    </div>
+  </div>
+</div>
+
+<!-- Diff modal -->
+<div class="modal-veil" id="diffOverlay" style="display:none;">
+  <div class="modal-card diff-card">
+    <div class="diff-topbar">
+      <span class="diff-title">Diff Viewer</span>
+      <div class="diff-pickers">
+        <select id="diffSelectV1" class="modal-sel sm"></select>
+        <span class="diff-sep">vs</span>
+        <select id="diffSelectV2" class="modal-sel sm"></select>
+      </div>
+      <button class="btn btn-ghost sm" id="btnCloseDiff">Close</button>
+    </div>
+    <div class="diff-body" id="diffContainer"></div>
+  </div>
+</div>
+
+<iframe id="previewIframe" style="display:none;" src="about:blank"></iframe>
+
+
+
+<!-- ── Note Template Editor Modal ─────────────────────────────────────────── -->
+<div class="modal-veil" id="noteTemplateModal" style="display:none;">
+  <div class="modal-card w-lg" style="max-height:90vh;overflow-y:auto;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+      <div class="modal-icn primary" style="flex-shrink:0;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      </div>
+      <h3 class="modal-heading" style="margin:0;flex:1;">Edit Note Template</h3>
+      <button class="btn btn-ghost sm" id="btnCloseNoteTemplate">✕</button>
+    </div>
+    <p class="modal-desc" style="margin-bottom:10px;">This YAML template is used every time you create a new note. Edit it as your interview process evolves.</p>
+    <textarea id="noteTemplateEditor"
+              style="width:100%;box-sizing:border-box;height:380px;font-family:monospace;font-size:.78rem;background:var(--surface-2);color:var(--text-1);border:1px solid var(--border);border-radius:6px;padding:10px;resize:vertical;outline:none;"
+              spellcheck="false"></textarea>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;">
+      <button class="btn btn-ghost" id="btnCancelNoteTemplate">Cancel</button>
+      <button class="btn btn-primary" id="btnSaveNoteTemplate">Save Template</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Document Reminders Manager Modal ── -->
+<div class="modal-veil" id="reminderSetModal" style="display:none; backdrop-filter: blur(8px);">
+  <div class="modal-card w-md" style="background: rgba(23, 23, 25, 0.9); border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 24px 48px rgba(0,0,0,0.5);">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 12px;">
+      <div class="modal-icn" style="flex-shrink:0; color: var(--accent);">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      </div>
+      <h3 class="modal-heading" style="margin:0;flex:1; background: linear-gradient(90deg, #fff, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Document Reminders</h3>
+      <button class="btn btn-ghost sm" id="btnCloseReminderSet" style="color:var(--text-2);">✕</button>
+    </div>
+    
+    <p class="modal-desc" id="reminderSetNoteLabel" style="margin-bottom:16px; font-weight:600; color:var(--text-1);"></p>
+    
+    <!-- Active Reminders List -->
+    <div style="margin-bottom: 24px;">
+      <label class="modal-lbl" style="text-transform:uppercase; font-size:0.7rem; color:var(--text-3);">Active Reminders</label>
+      <div id="documentRemindersList" style="display:flex; flex-direction:column; gap:8px; margin-top:8px; max-height:180px; overflow-y:auto; padding-right:4px;">
+        <!-- Filled by JS -->
+      </div>
+    </div>
+
+    <!-- Add New Reminder Form -->
+    <div style="background: rgba(255,255,255,0.02); padding: 16px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.04);">
+      <h4 style="margin: 0 0 12px 0; font-size: 0.85rem; color: var(--text-2);">+ Add New Reminder</h4>
+      <label class="modal-lbl">Reminder Date</label>
+      <input type="date" id="reminderDateInput" class="modal-inp" style="margin-bottom:12px; background:rgba(0,0,0,0.2); border-color:rgba(255,255,255,0.1);">
+      <label class="modal-lbl">Message / Action</label>
+      <textarea id="reminderMsgInput" class="modal-inp" rows="2"
+                placeholder="e.g. Follow up on proposal" style="background:rgba(0,0,0,0.2); border-color:rgba(255,255,255,0.1); resize:none;"></textarea>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;">
+        <button class="btn btn-ghost" id="btnCancelReminderSet">Cancel</button>
+        <button class="btn btn-primary" id="btnSaveReminderSet" style="background:var(--accent); border:none; box-shadow:0 4px 12px rgba(79, 142, 247, 0.3);">Add Reminder</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Add Tab Modal ── -->
+<div class="modal-veil" id="addTabModal" style="display:none; backdrop-filter: blur(8px);">
+  <div class="modal-card w-md" style="background: rgba(23, 23, 25, 0.9); border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 24px 48px rgba(0,0,0,0.5);">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 12px;">
+      <div class="modal-icn" style="flex-shrink:0; color: var(--accent);">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </div>
+      <h3 class="modal-heading" style="margin:0;flex:1; background: linear-gradient(90deg, #fff, #4f8ef7); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Add New Tab</h3>
+      <button class="btn btn-ghost sm" id="btnCloseAddTab" style="color:var(--text-2);">✕</button>
+    </div>
+    
+    <label class="modal-lbl">Choose Vault Type</label>
+    <select id="addTabSuggestionSelect" class="modal-sel" style="margin-bottom: 16px;">
+      <!-- Suggestions populated dynamically -->
+    </select>
+
+    <div id="addTabCustomFields" style="background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.04); border-radius: 8px; padding: 14px; margin-bottom: 16px;">
+      <label class="modal-lbl">Tab Label</label>
+      <input type="text" id="addTabLabelInput" class="modal-inp" style="margin-bottom: 12px;" placeholder="e.g. My Portfolio">
+
+      <label class="modal-lbl">Tab Slug (ID)</label>
+      <input type="text" id="addTabSlugInput" class="modal-inp" style="margin-bottom: 16px;" placeholder="e.g. portfolio">
+
+      <label class="modal-lbl" style="margin-bottom: 8px;">Select Icon</label>
+      <div id="addTabIconGrid" class="icon-picker-grid" style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-bottom: 16px;">
+        <!-- Icons populated dynamically -->
+      </div>
+
+      <label class="modal-lbl" style="margin-bottom: 8px;">Choose Accent Color</label>
+      <div id="addTabColorGrid" class="color-picker-grid" style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 8px;">
+        <!-- Colors populated dynamically -->
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;">
+      <button class="btn btn-ghost" id="btnCancelAddTab">Cancel</button>
+      <button class="btn btn-primary" id="btnConfirmAddTab">Add Tab</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Choose Theme Modal ── -->
+<div class="modal-veil" id="themePickerModal" style="display:none; backdrop-filter: blur(8px);">
+  <div class="modal-card w-md" style="background: rgba(23, 23, 25, 0.9); border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 24px 48px rgba(0,0,0,0.5);">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 12px;">
+      <div class="modal-icn" style="flex-shrink:0; color: var(--accent);">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 14.7255 3.09032 17.1962 4.85857 19C5.32674 19.475 5.23963 20.2575 4.8214 20.7818C4.30154 21.4335 4.60627 22 5.43712 22H12Z"/><circle cx="7.5" cy="10.5" r="1.5" fill="currentColor"/><circle cx="11.5" cy="7.5" r="1.5" fill="currentColor"/><circle cx="16.5" cy="9.5" r="1.5" fill="currentColor"/><circle cx="15.5" cy="14.5" r="1.5" fill="currentColor"/></svg>
+      </div>
+      <h3 class="modal-heading" style="margin:0;flex:1; background: linear-gradient(90deg, #fff, #4f8ef7); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Choose Paper Theme</h3>
+      <button class="btn btn-ghost sm" id="btnCloseThemePicker" style="color:var(--text-2);">✕</button>
+    </div>
+    
+    <div id="themePickerGrid" class="theme-picker-grid">
+      <!-- Theme preview cards populated dynamically by JS -->
+    </div>
+
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;">
+      <button class="btn btn-ghost" id="btnCancelThemePicker">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Add New Section Modal ── -->
+<div class="modal-veil" id="addSectionModal" style="display:none; backdrop-filter: blur(8px);">
+  <div class="modal-card w-md" style="background: rgba(23, 23, 25, 0.9); border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 24px 48px rgba(0,0,0,0.5);">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 12px;">
+      <div class="modal-icn primary" style="flex-shrink:0;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+      </div>
+      <h3 class="modal-heading" style="margin:0;flex:1; background: linear-gradient(90deg, #fff, #4f8ef7); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Add New Section</h3>
+    </div>
+    
+    <label class="modal-lbl">Section Name</label>
+    <input type="text" id="addSectionNameInput" class="modal-inp" style="margin-bottom: 16px;" placeholder="e.g. Key Achievements, Projects">
+    
+    <label class="modal-lbl">Section Type</label>
+    <select id="addSectionTypeSelect" class="modal-sel" style="margin-bottom: 16px;">
+      <option value="1">Entries (standard blocks with company, role, dates, location)</option>
+      <option value="2">Bullets (simple bulleted lists/paragraphs)</option>
+      <option value="3">Labels (key: value pairs)</option>
+    </select>
+
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;">
+      <button class="btn btn-ghost" id="addSectionCancelBtn">Cancel</button>
+      <button class="btn btn-primary" id="addSectionConfirmBtn">Add Section</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Custom Confirm Modal ── -->
+<div class="modal-veil" id="customConfirmModal" style="display:none; backdrop-filter: blur(8px);">
+  <div class="modal-card w-sm" style="background: rgba(23, 23, 25, 0.9); border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 24px 48px rgba(0,0,0,0.5);">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+      <div class="modal-icn danger" id="customConfirmIcon" style="flex-shrink:0;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      </div>
+      <h3 class="modal-heading" id="customConfirmTitle" style="margin:0;flex:1;">Confirm Action</h3>
+    </div>
+    <p class="modal-desc" id="customConfirmMessage">Are you sure you want to proceed?</p>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;">
+      <button class="btn btn-ghost" id="customConfirmCancelBtn">Cancel</button>
+      <button class="btn btn-danger" id="customConfirmOkBtn">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="/js/main.js?v=6"></script>
+</body>
+</html>
