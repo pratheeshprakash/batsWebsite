@@ -66,6 +66,10 @@
   gap: 4px;
   padding: 16px 16px 12px;
   border-bottom: 1px solid var(--border-light);
+  overflow-y: auto;
+  overflow-x: hidden;
+  max-height: clamp(150px, 30vh, 300px);
+  flex-shrink: 0;
 }
 .nav-pill {
   display: flex;
