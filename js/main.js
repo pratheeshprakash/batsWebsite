@@ -2021,13 +2021,19 @@ btnDownloadPdf.addEventListener("click", async () => {
     }
     const type = state.activeDocType;
     
+    // Open a blank tab immediately to bypass browser popup blockers
+    const newTab = window.open("about:blank", "_blank");
+    
     if (state.isDirty) {
         const saveBefore = await showConfirm(
             "Unsaved Changes",
             "You have unsaved changes. Save changes before exporting PDF?",
             false
         );
-        if (!saveBefore) return; // Abort export
+        if (!saveBefore) {
+            newTab.close();
+            return; // Abort export
+        }
         
         btnSaveDetails.disabled = true;
         try {
@@ -2043,6 +2049,7 @@ btnDownloadPdf.addEventListener("click", async () => {
                 await selectVersion(refreshed);
             }
         } catch (err) {
+            newTab.close();
             showToast("Save failed: " + err.message, "error");
             btnSaveDetails.disabled = false;
             return; // Abort export on save failure
@@ -2060,6 +2067,16 @@ btnDownloadPdf.addEventListener("click", async () => {
             await window.$typst.setCompilerInitOptions({
                 getModule: () => 'https://cdn.jsdelivr.net/npm/@myriaddreamin/typst-ts-web-compiler/pkg/typst_ts_web_compiler_bg.wasm',
             });
+            
+            // Preload standard text fonts (Liberation Sans, etc.) to prevent fallback to Serif Linux Libertine
+            try {
+                if (window.TypstSnippet && window.TypstSnippet.preloadFontAssets) {
+                    window.$typst.use(window.TypstSnippet.preloadFontAssets({ assets: ['text'] }));
+                }
+            } catch (fErr) {
+                console.warn("Typst font preloading failed, falling back:", fErr);
+            }
+            
             window.isTypstInitialized = true;
         }
 
@@ -2075,19 +2092,30 @@ btnDownloadPdf.addEventListener("click", async () => {
         // Call the globally loaded $typst compiler from the CDN script
         const pdfData = await window.$typst.pdf({ mainContent: typstCode });
         
-        // Create a blob and trigger browser download
+        // Create a blob and open it in the pre-opened tab using a full-viewport iframe
         const blob = new Blob([pdfData], { type: "application/pdf" });
         const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = `${state.activeVersion.slug}.pdf`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
+        
+        newTab.document.write(`
+            <!DOCTYPE html>
+            <html>
+                <head>
+                    <title>${state.activeVersion.slug}</title>
+                    <style>
+                        html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #525659; }
+                        iframe { border: none; width: 100%; height: 100%; }
+                    </style>
+                </head>
+                <body>
+                    <iframe src="${url}"></iframe>
+                </body>
+            </html>
+        `);
+        newTab.document.close();
         
         showToast("PDF exported successfully", "success");
     } catch (err) {
+        newTab.close();
         console.error("PDF Generation Error Details:", err);
         showToast("PDF generation failed: " + err.message, "error");
     }
