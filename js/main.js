@@ -1143,9 +1143,10 @@ function renderPaperSheet(jsonObj, docType) {
 
     // ── Sections ───────────────────────────────────────────────────────────
     html += `<div id="paperSections">`;
-    for (const name in sections) {
+    const sectionOrder = data.section_order || Object.keys(sections);
+    sectionOrder.forEach(name => {
         const content = sections[name];
-        if (!content) continue;
+        if (!content) return;
 
         if (name === "Summary") {
             const summaryText = Array.isArray(content) ? content.join("\n") : content;
@@ -1248,7 +1249,7 @@ function renderPaperSheet(jsonObj, docType) {
                 <button class="add-entry-btn" onclick="addEntryBlock(this, '${name}')" style="margin-top:8px;">+ Add entry block</button>
             </div>`;
         }
-    }
+    });
     html += `</div>`; // closes paperSections
 
     // Add New Section Button
@@ -1569,8 +1570,11 @@ function serializeSheet() {
         }
     }
 
+    const sectionOrder = [];
     document.querySelectorAll(".resume-section").forEach(sec => {
         const name = sec.getAttribute("data-section-name");
+        sectionOrder.push(name);
+        
         const stype = sec.getAttribute("data-section-type");
 
         if (stype === "summary") {
@@ -1677,6 +1681,7 @@ function serializeSheet() {
         }
     });
 
+    data.section_order = sectionOrder;
     return state.activeJson;
 }
 

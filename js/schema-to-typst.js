@@ -49,9 +49,13 @@ export function translateCvToTypst(cvData) {
     // Horizontal rule under header
     code += `#line(length: 100%, stroke: 0.5pt + rgb("#004f90"))\n#v(10pt)\n`;
 
-    // Render sections
+    // Render sections in explicit order
     if (cv.sections) {
-        for (const [sectionTitle, entries] of Object.entries(cv.sections)) {
+        const sectionOrder = cv.section_order || Object.keys(cv.sections);
+        sectionOrder.forEach(sectionTitle => {
+            const entries = cv.sections[sectionTitle];
+            if (!entries) return;
+
             code += `\n// ── ${sectionTitle} ──\n`;
             code += `#text(weight: "bold", size: 12pt, fill: rgb("#004f90"))[${sectionTitle.toUpperCase()}]\n`;
             code += `#v(-4pt)\n#line(length: 100%, stroke: 0.5pt + rgb("#cbd5e1"))\n#v(4pt)\n`;
@@ -98,7 +102,7 @@ export function translateCvToTypst(cvData) {
                     }
                 });
             }
-        }
+        });
     }
 
     return code;
@@ -134,9 +138,13 @@ export function translateDocToTypst(docData) {
     // Horizontal rule under title
     code += `#line(length: 100%, stroke: 0.5pt + rgb("#cbd5e1"))\n#v(12pt)\n`;
 
-    // Render sections
+    // Render sections in explicit order
     if (doc.sections) {
-        for (const [sectionTitle, entries] of Object.entries(doc.sections)) {
+        const sectionOrder = doc.section_order || Object.keys(doc.sections);
+        sectionOrder.forEach(sectionTitle => {
+            const entries = doc.sections[sectionTitle];
+            if (!entries) return;
+
             code += `\n// ── ${sectionTitle} ──\n`;
             code += `#text(weight: "bold", size: 14pt, fill: rgb("#004f90"))[${sectionTitle}]\n\n`;
 
@@ -154,7 +162,7 @@ export function translateDocToTypst(docData) {
                 });
                 code += `#v(8pt)\n`;
             }
-        }
+        });
     }
 
     return code;
