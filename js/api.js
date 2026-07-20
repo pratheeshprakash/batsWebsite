@@ -454,6 +454,8 @@ export async function saveNoteTemplate(template) {
             user_id: user.id,
             key: "note_template",
             value: parsed
+        }, {
+            onConflict: "user_id,key"
         });
     if (error) throw error;
     return { status: "success" };
@@ -623,6 +625,8 @@ export async function saveTabs(tabsData) {
             user_id: user.id,
             key: "tabs_config",
             value: tabsData
+        }, {
+            onConflict: "user_id,key"
         });
     if (error) throw error;
     return { status: "success" };
