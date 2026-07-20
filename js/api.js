@@ -27,9 +27,38 @@ export async function fetchVersions(type) {
         // Fetch submissions for this document
         const { data: subs } = await supabase
             .from("submissions")
-            .select("name")
+            .select("id, name")
             .eq("document_id", doc.id);
         const submissionsList = subs ? subs.map(s => s.name) : [];
+
+        // Build submission_links map: submission_name -> linked note slug
+        const submission_links = {};
+        if (subs && subs.length > 0) {
+            const subIds = subs.map(s => s.id);
+            const { data: noteLinks } = await supabase
+                .from("note_links")
+                .select("submission_id, note_id")
+                .in("submission_id", subIds);
+                
+            if (noteLinks && noteLinks.length > 0) {
+                const noteIds = noteLinks.map(nl => nl.note_id);
+                const { data: notes } = await supabase
+                    .from("documents")
+                    .select("id, slug")
+                    .in("id", noteIds);
+                    
+                if (notes && notes.length > 0) {
+                    const noteSlugMap = Object.fromEntries(notes.map(n => [n.id, n.slug]));
+                    noteLinks.forEach(nl => {
+                        const sub = subs.find(s => s.id === nl.submission_id);
+                        const noteSlug = noteSlugMap[nl.note_id];
+                        if (sub && noteSlug) {
+                            submission_links[sub.name] = noteSlug;
+                        }
+                    });
+                }
+            }
+        }
         
         // Fetch note links for this document if it is a notes document
         const { data: noteLinks } = await supabase
@@ -95,7 +124,7 @@ export async function fetchVersions(type) {
             summary: summary,
             submissions: submissionsList,
             linked_to: linkedTo,
-            submission_links: {},
+            submission_links: submission_links,
             reminder_date: rems ? rems.reminder_date : null,
             reminder_msg: rems ? rems.reminder_msg : null,
             reminder_dismissed: rems ? (rems.status === "dismissed") : false,
