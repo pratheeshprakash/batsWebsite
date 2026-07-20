@@ -2763,10 +2763,14 @@ if (btnGoogleSignIn) {
     btnGoogleSignIn.addEventListener("click", async () => {
         try {
             showToast("Redirecting to Google...", "info");
+            let redirectPath = window.location.pathname;
+            if (redirectPath.endsWith("index.html")) {
+                redirectPath = redirectPath.slice(0, -10);
+            }
             const { error } = await supabase.auth.signInWithOAuth({
                 provider: "google",
                 options: {
-                    redirectTo: window.location.origin + window.location.pathname
+                    redirectTo: window.location.origin + redirectPath
                 }
             });
             if (error) throw error;
