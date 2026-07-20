@@ -5,6 +5,21 @@
  * for high-quality, ATS-compatible PDF generation in the browser.
  */
 
+function escapeTypst(val) {
+    if (typeof val !== "string") {
+        if (val === null || val === undefined) return "";
+        return String(val);
+    }
+    return val
+        .replace(/\\/g, "\\\\")
+        .replace(/@/g, "\\@")
+        .replace(/#/g, "\\#")
+        .replace(/_/g, "\\_")
+        .replace(/\*/g, "\\*")
+        .replace(/</g, "\\<")
+        .replace(/>/g, "\\>");
+}
+
 export function translateCvToTypst(cvData) {
     const cv = cvData.cv || {};
     let code = "";
@@ -24,21 +39,21 @@ export function translateCvToTypst(cvData) {
 
     // Title / Header
     if (cv.name) {
-        code += `#align(center)[\n  #text(size: 20pt, weight: "bold", fill: rgb("#004f90"))[${cv.name}]\n]\n`;
+        code += `#align(center)[\n  #text(size: 20pt, weight: "bold", fill: rgb("#004f90"))[${escapeTypst(cv.name)}]\n]\n`;
     }
 
     // Contact details line
     let contact = [];
-    if (cv.location) contact.push(cv.location);
-    if (cv.email) contact.push(cv.email);
-    if (cv.phone) contact.push(cv.phone);
+    if (cv.location) contact.push(escapeTypst(cv.location));
+    if (cv.email) contact.push(escapeTypst(cv.email));
+    if (cv.phone) contact.push(escapeTypst(cv.phone));
     if (cv.website) {
         let cleanUrl = cv.website.replace(/^https?:\/\//, "");
-        contact.push(cleanUrl);
+        contact.push(escapeTypst(cleanUrl));
     }
     if (cv.social_networks) {
         cv.social_networks.forEach(net => {
-            contact.push(`${net.network}: ${net.username}`);
+            contact.push(`${escapeTypst(net.network)}: ${escapeTypst(net.username)}`);
         });
     }
 
@@ -57,14 +72,14 @@ export function translateCvToTypst(cvData) {
             if (!entries) return;
 
             code += `\n// ── ${sectionTitle} ──\n`;
-            code += `#text(weight: "bold", size: 12pt, fill: rgb("#004f90"))[${sectionTitle.toUpperCase()}]\n`;
+            code += `#text(weight: "bold", size: 12pt, fill: rgb("#004f90"))[${escapeTypst(sectionTitle).toUpperCase()}]\n`;
             code += `#v(-4pt)\n#line(length: 100%, stroke: 0.5pt + rgb("#cbd5e1"))\n#v(4pt)\n`;
 
             if (Array.isArray(entries)) {
                 entries.forEach(entry => {
                     if (typeof entry === "string") {
                         // Paragraph / Text block
-                        code += `${entry}\n\n`;
+                        code += `${escapeTypst(entry)}\n\n`;
                     } else if (typeof entry === "object") {
                         // Experience or Education entry
                         const titleLeft = entry.company || entry.institution || entry.name || "";
@@ -78,7 +93,7 @@ export function translateCvToTypst(cvData) {
                         if (titleLeft || titleRight) {
                             code += `#grid(
   columns: (1fr, auto),
-  [*${titleLeft}*], [${titleRight}],
+  [*${escapeTypst(titleLeft)}*], [${escapeTypst(titleRight)}],
 )\n`;
                         }
 
@@ -86,7 +101,7 @@ export function translateCvToTypst(cvData) {
                         if (subLeft || subRight) {
                             code += `#v(-4pt)\n#grid(
   columns: (1fr, auto),
-  [_${subLeft}_], [#text(fill: rgb("#64748b"))[${subRight}]],
+  [_${escapeTypst(subLeft)}_], [#text(fill: rgb("#64748b"))[${escapeTypst(subRight)}]],
 )\n`;
                         }
 
@@ -94,7 +109,7 @@ export function translateCvToTypst(cvData) {
                         if (entry.highlights && Array.isArray(entry.highlights)) {
                             code += `#v(2pt)\n`;
                             entry.highlights.forEach(h => {
-                                code += `- ${h}\n`;
+                                code += `- ${escapeTypst(h)}\n`;
                             });
                         }
                         
@@ -127,12 +142,12 @@ export function translateDocToTypst(docData) {
 
     // Title
     if (doc.title) {
-        code += `#align(center)[\n  #text(size: 22pt, weight: "bold", fill: rgb("#004f90"))[${doc.title}]\n]\n`;
+        code += `#align(center)[\n  #text(size: 22pt, weight: "bold", fill: rgb("#004f90"))[${escapeTypst(doc.title)}]\n]\n`;
     }
 
     // Author
     if (doc.author) {
-        code += `#align(center)[\n  #text(size: 11pt, style: "italic", fill: rgb("#64748b"))[By ${doc.author}]\n]\n#v(10pt)\n`;
+        code += `#align(center)[\n  #text(size: 11pt, style: "italic", fill: rgb("#64748b"))[By ${escapeTypst(doc.author)}]\n]\n#v(10pt)\n`;
     }
 
     // Horizontal rule under title
@@ -146,17 +161,17 @@ export function translateDocToTypst(docData) {
             if (!entries) return;
 
             code += `\n// ── ${sectionTitle} ──\n`;
-            code += `#text(weight: "bold", size: 14pt, fill: rgb("#004f90"))[${sectionTitle}]\n\n`;
+            code += `#text(weight: "bold", size: 14pt, fill: rgb("#004f90"))[${escapeTypst(sectionTitle)}]\n\n`;
 
             if (Array.isArray(entries)) {
                 entries.forEach(entry => {
                     if (typeof entry === "string") {
-                        code += `${entry}\n\n`;
+                        code += `${escapeTypst(entry)}\n\n`;
                     } else if (typeof entry === "object") {
                         if (entry.bullet) {
-                            code += `- ${entry.bullet}\n`;
+                            code += `- ${escapeTypst(entry.bullet)}\n`;
                         } else if (entry.heading) {
-                            code += `== ${entry.heading}\n\n`;
+                            code += `== ${escapeTypst(entry.heading)}\n\n`;
                         }
                     }
                 });

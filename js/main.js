@@ -2053,12 +2053,24 @@ btnDownloadPdf.addEventListener("click", async () => {
     
     showToast("Compiling PDF…", "info", 5000);
     try {
+        if (!window.isTypstInitialized) {
+            if (!window.$typst) {
+                throw new Error("Typst compiler is not loaded yet. Please wait a moment and try again.");
+            }
+            await window.$typst.setCompilerInitOptions({
+                getModule: () => 'https://cdn.jsdelivr.net/npm/@myriaddreamin/typst-ts-web-compiler/pkg/typst_ts_web_compiler_bg.wasm',
+            });
+            window.isTypstInitialized = true;
+        }
+
         let typstCode = "";
         if (type === "cv") {
             typstCode = translateCvToTypst(state.activeJson);
         } else {
             typstCode = translateDocToTypst(state.activeJson);
         }
+        
+        console.log("Compiling Typst markup:\n", typstCode);
 
         // Call the globally loaded $typst compiler from the CDN script
         const pdfData = await window.$typst.pdf({ mainContent: typstCode });
@@ -2076,6 +2088,7 @@ btnDownloadPdf.addEventListener("click", async () => {
         
         showToast("PDF exported successfully", "success");
     } catch (err) {
+        console.error("PDF Generation Error Details:", err);
         showToast("PDF generation failed: " + err.message, "error");
     }
 });
