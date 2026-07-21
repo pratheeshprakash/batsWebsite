@@ -8,7 +8,7 @@
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="stylesheet" href="css/vars.css?v=2">
     <link rel="stylesheet" href="css/layout.css?v=2">
-    <link rel="stylesheet" href="css/timeline.css?v=2">
+    <link rel="stylesheet" href="css/timeline.css?v=3">
     <link rel="stylesheet" href="css/paper-editor.css?v=2">
     <link rel="stylesheet" href="css/modals.css?v=2">
     <link rel="stylesheet" href="css/intro.css?v=2">
@@ -103,7 +103,7 @@
         <div class="panel-section-label collapsible-header" id="submissionsHeader" style="margin-top:4px;">
           <span style="display:inline-flex; align-items:center;">
             <svg id="submissionsChevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="transition: transform var(--transition-fast); margin-right: 6px;"><polyline points="6 9 12 15 18 9"/></svg>
-            LINKED TO
+            <span id="submissionsHeaderText">LINKED TO</span>
           </span>
           <span id="submissionCountBadge" class="nav-badge">0</span>
         </div>
@@ -357,7 +357,7 @@
                 placeholder="e.g. Follow up on proposal" style="background:rgba(0,0,0,0.2); border-color:rgba(255,255,255,0.1); resize:none;"></textarea>
       <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;">
         <button class="btn btn-ghost" id="btnCancelReminderSet">Cancel</button>
-        <button class="btn btn-primary" id="btnSaveReminderSet" style="background:var(--accent); border:none; box-shadow:0 4px 12px rgba(79, 142, 247, 0.3);">Add Reminder</button>
+        <button class="btn btn-primary" id="btnSaveReminderSet" style="background:var(--accent); color:var(--bg-app); font-weight:600; border:none; box-shadow:0 4px 12px rgba(79, 142, 247, 0.3);">Add Reminder</button>
       </div>
     </div>
   </div>
@@ -469,6 +469,6 @@
   </div>
 </div>
 
-<script type="module" src="js/main.js?v=7"></script>
+<script type="module" src="js/main.js?v=10"></script>
 </body>
 </html>

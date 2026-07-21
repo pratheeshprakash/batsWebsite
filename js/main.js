@@ -1697,10 +1697,19 @@ function renderSubmissions() {
     const subs = docType === "notes" ? (state.activeVersion.linked_to || []) : (state.activeVersion.submissions || []);
     submissionCountBadge.textContent = subs.length;
     
-    // Manage addSubmissionForm visibility
+    // Manage submissions header text and sub-labels dynamically
+    const headerText = document.getElementById("submissionsHeaderText");
+    if (headerText) {
+        headerText.textContent = docType === "notes" ? "LINKED SUBMISSION" : "SUBMISSIONS";
+    }
+    if (addSubmissionInput) {
+        addSubmissionInput.placeholder = "Add submission target (e.g. Google - Tech Lead)…";
+    }
+
+    // Manage addSubmissionForm visibility (hide on notes tab since linking is done via autocomplete search input)
     const addSubForm = document.getElementById("addSubmissionForm");
     if (addSubForm) {
-        addSubForm.style.display = "flex";
+        addSubForm.style.display = docType === "notes" ? "none" : "flex";
     }
 
     if (!subs.length && docType !== "notes") {
@@ -1713,16 +1722,12 @@ function renderSubmissions() {
     subs.forEach(s => {
         const el = document.createElement("div");
         el.className = "submission-item-row";
+        // Left accent bar matching the active tab's theme accent
+        el.style.borderLeft = "3px solid var(--accent)";
 
         const label = document.createElement("span");
         label.textContent = s;
-        label.title = s;
-        if (docType !== "notes") {
-            label.style.cursor = "pointer";
-            label.style.textDecoration = "underline";
-            label.style.textDecorationColor = "var(--border-light)";
-            label.addEventListener("click", () => openSubmissionDetails(s));
-        }
+        label.title = s; // browser tooltip shows full text on hover
         el.appendChild(label);
 
         const actions = document.createElement("div");
@@ -1732,6 +1737,7 @@ function renderSubmissions() {
         el.appendChild(actions);
 
         if (docType === "notes") {
+            // Note side: link between Note and Submission is 1-to-1, already linked!
             const jumpBtn = document.createElement("button");
             jumpBtn.className = "submission-action-btn";
             jumpBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`;
@@ -1756,15 +1762,19 @@ function renderSubmissions() {
             });
             actions.appendChild(unlinkBtn);
         } else {
+            // CV/Bio/Brand side:
             const linkedNoteFile = state.activeVersion?.submission_links?.[s];
             if (linkedNoteFile) {
                 const noteVer = notes.find(n => n.filename === linkedNoteFile);
-                const noteTitle = noteVer ? (noteVer.title || noteVer.slug.replace(/-/g, " ")) : linkedNoteFile;
+                const noteTitle = noteVer ? (noteVer.title || (noteVer.slug ? noteVer.slug.replace(/-/g, " ") : "") || noteVer.filename || "") : linkedNoteFile;
 
                 const badge = document.createElement("button");
-                badge.className = "submission-action-btn";
+                badge.className = "submission-detail-badge"; // Reuse this premium badge class!
+                badge.style.margin = "0";
                 badge.style.padding = "4px 8px";
-                badge.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg> <span class="linked-note-title" style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${noteTitle}</span>`;
+                badge.style.fontSize = "0.7rem";
+                badge.style.height = "24px";
+                badge.innerHTML = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent);"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg> <span class="linked-note-title" style="max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${noteTitle}</span>`;
                 badge.title = "Jump to linked Note: " + noteTitle;
                 badge.addEventListener("click", () => jumpToDocument("notes", linkedNoteFile));
                 actions.appendChild(badge);
@@ -1795,56 +1805,70 @@ function renderSubmissions() {
                 linkBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`;
                 linkBtn.title = "Link a note";
 
-                const select = document.createElement("select");
-                select.className = "modal-sel sm";
-                select.style.fontSize = "0.7rem";
-                select.style.padding = "2px";
-                select.style.display = "none";
-                select.style.maxWidth = "110px";
+                // Searchable Input + Datalist Autocomplete
+                const input = document.createElement("input");
+                input.type = "text";
+                input.className = "sub-input sm";
+                input.placeholder = "Search note…";
+                input.style.fontSize = "0.7rem";
+                input.style.padding = "2px 6px";
+                input.style.display = "none";
+                input.style.maxWidth = "110px";
+
+                const listId = "datalist-notes-" + String(s || "").replace(/[^a-zA-Z0-9]/g, "-");
+                input.setAttribute("list", listId);
+
+                const datalist = document.createElement("datalist");
+                datalist.id = listId;
 
                 const unlinkedNotes = notes.filter(n => !n.linked_to || n.linked_to.length === 0);
-                select.innerHTML = '<option value="">-- Choose --</option>' +
-                    unlinkedNotes.map(n => `<option value="${n.filename}">${n.date} — ${(n.title || n.slug.replace(/-/g, " "))}</option>`).join("");
+                datalist.innerHTML = unlinkedNotes.map(n => {
+                    const label = `${n.date || ""} — ${(n.title || (n.slug ? n.slug.replace(/-/g, " ") : "") || n.filename || "")}`;
+                    return `<option value="${label}" data-filename="${n.filename}"></option>`;
+                }).join("");
 
                 linkBtn.addEventListener("click", () => {
-                    linkBtn.style.display = "none";
-                    select.style.display = "inline-block";
-                    select.focus();
-                });
-
-                select.addEventListener("change", async () => {
-                    const noteFile = select.value;
-                    if (!noteFile) {
-                        select.style.display = "none";
-                        linkBtn.style.display = "inline-block";
+                    if (unlinkedNotes.length === 0) {
+                        showToast("No unlinked notes available. Create a note first!", "info");
                         return;
                     }
-                    try {
-                        await api.linkNote(noteFile, s);
-                        showToast("Linked note successfully", "success");
-                        await loadVersions("notes");
-                        await loadVersions(state.activeDocType);
-                        const refreshed = (state.versions[state.activeDocType] || []).find(v => v.filename === state.activeVersion.filename);
-                        if (refreshed) {
-                            state.activeVersion = refreshed;
-                            renderSubmissions();
+                    linkBtn.style.display = "none";
+                    input.style.display = "inline-block";
+                    input.focus();
+                });
+
+                input.addEventListener("input", async () => {
+                    const opt = Array.from(datalist.options).find(o => o.value === input.value);
+                    if (opt) {
+                        const noteFile = opt.dataset.filename;
+                        try {
+                            await api.linkNote(noteFile, s);
+                            showToast("Linked note successfully", "success");
+                            await loadVersions("notes");
+                            await loadVersions(state.activeDocType);
+                            const refreshed = (state.versions[state.activeDocType] || []).find(v => v.filename === state.activeVersion.filename);
+                            if (refreshed) {
+                                state.activeVersion = refreshed;
+                                renderSubmissions();
+                            }
+                        } catch (err) {
+                            showToast("Link failed", "error");
                         }
-                    } catch (err) {
-                        showToast("Link failed", "error");
                     }
                 });
 
-                select.addEventListener("blur", () => {
+                input.addEventListener("blur", () => {
                     setTimeout(() => {
-                        if (select.style.display !== "none" && !select.value) {
-                            select.style.display = "none";
+                        if (input.style.display !== "none" && !input.value) {
+                            input.style.display = "none";
                             linkBtn.style.display = "inline-block";
                         }
-                    }, 200);
+                    }, 250);
                 });
 
                 actions.appendChild(linkBtn);
-                actions.appendChild(select);
+                actions.appendChild(input);
+                actions.appendChild(datalist);
             }
         }
         if (docType !== "notes") {
@@ -1888,14 +1912,22 @@ function renderSubmissions() {
             linkBtn.onmouseout = () => { linkBtn.style.color = "var(--text-muted)"; linkBtn.style.borderColor = "var(--border-light)"; };
             linkBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Link Submission`;
             
-            const select = document.createElement("select");
-            select.className = "modal-sel sm";
-            select.style.cssText = "font-size:0.75rem;padding:4px;display:none;width:100%;margin-top:4px;";
+            const input = document.createElement("input");
+            input.type = "text";
+            input.className = "sub-input";
+            input.placeholder = "Type to search submissions…";
+            input.style.cssText = "font-size:0.75rem;padding:6px 12px;display:none;width:100%;margin-top:4px;";
+
+            const listId = "datalist-submissions-" + String(state.activeVersion.filename || "").replace(/[^a-zA-Z0-9]/g, "-");
+            input.setAttribute("list", listId);
+
+            const datalist = document.createElement("datalist");
+            datalist.id = listId;
             
             linkBtn.addEventListener("click", async () => {
                 linkBtn.style.display = "none";
-                select.style.display = "block";
-                select.innerHTML = "<option value=''>-- Loading submissions... --</option>";
+                input.style.display = "block";
+                input.placeholder = "Loading submissions...";
                 try {
                     const allSubs = await api.fetchAllSubmissions();
                     const linksData = await api.getAllLinks().catch(() => ({ links: [] }));
@@ -1904,46 +1936,48 @@ function renderSubmissions() {
                     const availableSubs = allSubs.filter(s => !linkedSubs.has(s.submission));
                     
                     if (availableSubs.length === 0) {
-                        select.innerHTML = "<option value=''>No unlinked submissions found</option>";
+                        input.placeholder = "No unlinked submissions found";
                     } else {
-                        select.innerHTML = "<option value=''>-- Select Submission --</option>" + 
-                            availableSubs.map(s => `<option value="${s.submission}">${s.submission} (${s.docType})</option>`).join("");
+                        input.placeholder = "Type to search submissions…";
+                        datalist.innerHTML = availableSubs.map(s => {
+                            const label = `${s.submission} (${s.docType})`;
+                            return `<option value="${label}" data-submission="${s.submission}"></option>`;
+                        }).join("");
                     }
                 } catch (err) {
-                    select.innerHTML = "<option value=''>Failed to load</option>";
+                    input.placeholder = "Failed to load submissions";
                 }
-                select.focus();
+                input.focus();
             });
             
-            select.addEventListener("change", async () => {
-                const sub = select.value;
-                if (!sub) {
-                    select.style.display = "none";
-                    linkBtn.style.display = "block";
-                    return;
-                }
-                try {
-                    await api.linkNote(state.activeVersion.filename, sub);
-                    showToast("Linked submission", "success");
-                    await loadVersions("notes");
-                    const refreshed = (state.versions["notes"] || []).find(n => n.filename === state.activeVersion.filename);
-                    if (refreshed) { state.activeVersion = refreshed; renderSubmissions(); }
-                } catch (err) {
-                    showToast("Could not link", "error");
+            input.addEventListener("input", async () => {
+                const opt = Array.from(datalist.options).find(o => o.value === input.value);
+                if (opt) {
+                    const sub = opt.dataset.submission;
+                    try {
+                        await api.linkNote(state.activeVersion.filename, sub);
+                        showToast("Linked submission successfully", "success");
+                        await loadVersions("notes");
+                        const refreshed = (state.versions["notes"] || []).find(n => n.filename === state.activeVersion.filename);
+                        if (refreshed) { state.activeVersion = refreshed; renderSubmissions(); }
+                    } catch (err) {
+                        showToast("Could not link", "error");
+                    }
                 }
             });
 
-            select.addEventListener("blur", () => {
+            input.addEventListener("blur", () => {
                 setTimeout(() => {
-                    if (select.style.display !== "none" && !select.value) {
-                        select.style.display = "none";
-                        linkBtn.style.display = "block";
+                    if (input.style.display !== "none" && !input.value) {
+                        input.style.display = "none";
+                        linkBtn.style.display = "flex";
                     }
-                }, 200);
+                }, 250);
             });
             
             linkContainer.appendChild(linkBtn);
-            linkContainer.appendChild(select);
+            linkContainer.appendChild(input);
+            linkContainer.appendChild(datalist);
             submissionList.appendChild(linkContainer);
         }
     }

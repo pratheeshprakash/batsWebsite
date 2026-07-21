@@ -367,18 +367,22 @@ export async function linkNote(noteFile, submission) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Not authenticated");
 
-    const { data: note } = await supabase
+    const { data: note, error: noteErr } = await supabase
         .from("documents")
         .select("id")
         .eq("doc_type", "notes")
         .eq("slug", noteFile)
         .single();
+    if (noteErr) throw noteErr;
+    if (!note) throw new Error("Note not found");
 
-    const { data: sub } = await supabase
+    const { data: subs, error: subErr } = await supabase
         .from("submissions")
         .select("id")
-        .eq("name", submission)
-        .single();
+        .eq("name", submission);
+    if (subErr) throw subErr;
+    if (!subs || subs.length === 0) throw new Error("Submission not found");
+    const sub = subs[0];
 
     const { error } = await supabase
         .from("note_links")
@@ -393,25 +397,31 @@ export async function linkNote(noteFile, submission) {
 
 // Unlink a note from a submission
 export async function unlinkNote(noteFile, submission) {
-    const { data: note } = await supabase
+    const { data: note, error: noteErr } = await supabase
         .from("documents")
         .select("id")
         .eq("doc_type", "notes")
         .eq("slug", noteFile)
         .single();
+    if (noteErr) throw noteErr;
+    if (!note) throw new Error("Note not found");
 
-    const { data: sub } = await supabase
-        .from("submissions")
-        .select("id")
-        .eq("name", submission)
-        .single();
-
-    const { error } = await supabase
+    // Retrieve all links between this note and a submission with this name
+    const { data: links, error: linkErr } = await supabase
         .from("note_links")
-        .delete()
+        .select("id, submission_id, submissions!inner(name)")
         .eq("note_id", note.id)
-        .eq("submission_id", sub.id);
-    if (error) throw error;
+        .eq("submissions.name", submission);
+    if (linkErr) throw linkErr;
+
+    if (links && links.length > 0) {
+        const linkIds = links.map(l => l.id);
+        const { error: delErr } = await supabase
+            .from("note_links")
+            .delete()
+            .in("id", linkIds);
+        if (delErr) throw delErr;
+    }
     return { status: "success" };
 }
 

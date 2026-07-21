@@ -132,12 +132,7 @@
   color: var(--text-main);
 }
 .submission-item-row:hover span {
-  white-space: normal;
-  overflow: visible;
-  text-overflow: clip;
-}
-.submission-item-row:hover .linked-note-title {
-  max-width: none !important;
+  color: var(--text-main);
 }
 .submission-action-btn {
   padding: 4px;
@@ -235,7 +230,11 @@
   color: var(--accent);
 }
 
-/* Note Link Chip */
 .card-link-chip { display: inline-flex; align-items: center; gap: 4px; font-size: 0.7rem; font-weight: 600; color: var(--text-muted); background: var(--bg-app); border: 1px solid var(--border-light); padding: 4px 8px; border-radius: 6px; cursor: pointer; transition: var(--transition-fast); margin-top: 6px; }
 .card-link-chip:hover { border-color: var(--accent); color: var(--accent); }
 .card-link-chip.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+
+/* Hide datalist arrow in WebKit/Blink browsers to keep search input look clean */
+.sub-input::-webkit-calendar-picker-indicator {
+  display: none !important;
+}
