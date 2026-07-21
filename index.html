@@ -292,8 +292,14 @@
       <span class="diff-title">Diff Viewer</span>
       <div class="diff-pickers">
         <select id="diffSelectV1" class="modal-sel sm"></select>
-        <span class="diff-sep">vs</span>
+        <button id="btnSwapDiff" class="btn btn-ghost sm" title="Swap versions" style="padding: 4px 8px; border: 1px solid var(--border-light); height: 28px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); cursor: pointer; transition: color 0.15s ease;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m16 3 4 4-4 4M20 7H4M8 21l-4-4 4-4M4 17h16"/></svg>
+        </button>
         <select id="diffSelectV2" class="modal-sel sm"></select>
+      </div>
+      <div class="diff-view-toggle">
+        <button id="btnDiffUnified" class="btn btn-ghost sm active">Unified</button>
+        <button id="btnDiffSplit" class="btn btn-ghost sm">Split</button>
       </div>
       <button class="btn btn-ghost sm" id="btnCloseDiff">Close</button>
     </div>

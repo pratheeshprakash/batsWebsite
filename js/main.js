@@ -52,6 +52,9 @@ const btnCloseDiff       = $("btnCloseDiff");
 const diffSelectV1       = $("diffSelectV1");
 const diffSelectV2       = $("diffSelectV2");
 const diffContainer      = $("diffContainer");
+const btnSwapDiff        = $("btnSwapDiff");
+const btnDiffUnified     = $("btnDiffUnified");
+const btnDiffSplit       = $("btnDiffSplit");
 const branchOverlay      = $("branchOverlay");
 const btnCloseBranch     = $("btnCloseBranch");
 const branchSelectBase   = $("branchSelectBase");
@@ -2293,29 +2296,249 @@ btnCreateBranchSubmit.addEventListener("click", async () => {
 });
 
 // ── Diff modal ────────────────────────────────────────────────────────────────
+let diffViewMode = "unified";
+
 btnCompare.addEventListener("click", () => { diffOverlay.style.display = "flex"; calculateDiff(); });
 btnCloseDiff.addEventListener("click", () => { diffOverlay.style.display = "none"; });
 diffSelectV1.addEventListener("change", calculateDiff);
 diffSelectV2.addEventListener("change", calculateDiff);
 
+if (btnSwapDiff) {
+    btnSwapDiff.addEventListener("click", () => {
+        const temp = diffSelectV1.value;
+        diffSelectV1.value = diffSelectV2.value;
+        diffSelectV2.value = temp;
+        calculateDiff();
+    });
+}
+
+if (btnDiffUnified) {
+    btnDiffUnified.addEventListener("click", () => {
+        diffViewMode = "unified";
+        btnDiffUnified.classList.add("active");
+        btnDiffSplit.classList.remove("active");
+        calculateDiff();
+    });
+}
+
+if (btnDiffSplit) {
+    btnDiffSplit.addEventListener("click", () => {
+        diffViewMode = "split";
+        btnDiffSplit.classList.add("active");
+        btnDiffUnified.classList.remove("active");
+        calculateDiff();
+    });
+}
+
+function escapeHTML(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
 async function calculateDiff() {
     const type = state.activeDocType;
-    diffContainer.innerHTML = `<div style="color:var(--text-3);">Loading diff…</div>`;
+    diffContainer.innerHTML = `<div style="color:var(--text-3);padding:24px 32px;">Loading diff…</div>`;
     try {
-        const diffPatch = await api.fetchDiff(type, diffSelectV1.value, diffSelectV2.value);
-        const data = { diff: diffPatch.split("\n") };
-        diffContainer.innerHTML = "";
-        if (!data.diff.length) {
+        const v1 = diffSelectV1.value;
+        const v2 = diffSelectV2.value;
+        
+        if (!v1 || !v2) {
+            diffContainer.innerHTML = `<div style="color:var(--text-3);text-align:center;padding:40px;">Select two versions to compare.</div>`;
+            return;
+        }
+
+        const d1 = await api.fetchDocumentJson(type, v1);
+        const d2 = await api.fetchDocumentJson(type, v2);
+        
+        const yaml1 = window.jsyaml.dump(d1, { noRefs: true, skipInvalid: true });
+        const yaml2 = window.jsyaml.dump(d2, { noRefs: true, skipInvalid: true });
+        
+        const chunks = window.Diff.diffLines(yaml1, yaml2);
+        const rows = [];
+        let oldLineNum = 1;
+        let newLineNum = 1;
+        
+        let i = 0;
+        while (i < chunks.length) {
+            const chunk = chunks[i];
+            
+            if (!chunk.added && !chunk.removed) {
+                const lines = chunk.value.split('\n');
+                if (lines.length > 0 && lines[lines.length - 1] === '') lines.pop();
+                for (const line of lines) {
+                    rows.push({
+                        type: 'unchanged',
+                        oldNum: oldLineNum++,
+                        newNum: newLineNum++,
+                        oldText: line,
+                        newText: line,
+                        isMarkup: false
+                    });
+                }
+                i++;
+            } else {
+                const removedLines = [];
+                const addedLines = [];
+                
+                while (i < chunks.length && (chunks[i].added || chunks[i].removed)) {
+                    const c = chunks[i];
+                    const lines = c.value.split('\n');
+                    if (lines.length > 0 && lines[lines.length - 1] === '') lines.pop();
+                    
+                    if (c.removed) {
+                        removedLines.push(...lines);
+                    } else if (c.added) {
+                        addedLines.push(...lines);
+                    }
+                    i++;
+                }
+                
+                const maxLen = Math.max(removedLines.length, addedLines.length);
+                for (let j = 0; j < maxLen; j++) {
+                    const remLine = j < removedLines.length ? removedLines[j] : null;
+                    const addLine = j < addedLines.length ? addedLines[j] : null;
+                    
+                    if (remLine !== null && addLine !== null) {
+                        const wordDiff = window.Diff.diffWordsWithSpace(remLine, addLine);
+                        
+                        let htmlRemoved = '';
+                        for (const part of wordDiff) {
+                            if (!part.added) {
+                                if (part.removed) {
+                                    htmlRemoved += `<span class="diff-highlight-removed">${escapeHTML(part.value)}</span>`;
+                                } else {
+                                    htmlRemoved += escapeHTML(part.value);
+                                }
+                            }
+                        }
+                        
+                        let htmlAdded = '';
+                        for (const part of wordDiff) {
+                            if (!part.removed) {
+                                if (part.added) {
+                                    htmlAdded += `<span class="diff-highlight-added">${escapeHTML(part.value)}</span>`;
+                                } else {
+                                    htmlAdded += escapeHTML(part.value);
+                                }
+                            }
+                        }
+                        
+                        rows.push({
+                            type: 'modified',
+                            oldNum: oldLineNum++,
+                            newNum: newLineNum++,
+                            oldText: htmlRemoved,
+                            newText: htmlAdded,
+                            isMarkup: true
+                        });
+                    } else if (remLine !== null) {
+                        rows.push({
+                            type: 'removed',
+                            oldNum: oldLineNum++,
+                            newNum: null,
+                            oldText: remLine,
+                            newText: null,
+                            isMarkup: false
+                        });
+                    } else if (addLine !== null) {
+                        rows.push({
+                            type: 'added',
+                            oldNum: null,
+                            newNum: newLineNum++,
+                            oldText: null,
+                            newText: addLine,
+                            isMarkup: false
+                        });
+                    }
+                }
+            }
+        }
+        
+        const hasChanges = rows.some(r => r.type !== 'unchanged');
+        if (!hasChanges) {
             diffContainer.innerHTML = `<div style="color:var(--text-3);text-align:center;padding:40px;">Files are identical.</div>`;
             return;
         }
-        data.diff.forEach(line => {
-            const d = document.createElement("div");
-            d.className = "diff-line" + (line.startsWith("+") ? " added" : line.startsWith("-") ? " removed" : "");
-            d.textContent = line; diffContainer.appendChild(d);
-        });
+
+        let html = '';
+        if (diffViewMode === 'split') {
+            html += `<table class="diff-table split">`;
+            html += `<colgroup><col style="width:50px;"><col><col style="width:50px;"><col></colgroup>`;
+            html += `<tbody>`;
+            for (const r of rows) {
+                html += `<tr class="diff-row">`;
+                if (r.type === 'unchanged') {
+                    html += `<td class="diff-cell diff-num-cell">${r.oldNum}</td>`;
+                    html += `<td class="diff-cell diff-code-cell">  ${r.isMarkup ? r.oldText : escapeHTML(r.oldText)}</td>`;
+                    html += `<td class="diff-cell diff-num-cell">${r.newNum}</td>`;
+                    html += `<td class="diff-cell diff-code-cell">  ${r.isMarkup ? r.newText : escapeHTML(r.newText)}</td>`;
+                } else if (r.type === 'removed') {
+                    html += `<td class="diff-cell diff-num-cell diff-cell-removed">${r.oldNum}</td>`;
+                    html += `<td class="diff-cell diff-code-cell diff-cell-removed">- ${r.isMarkup ? r.oldText : escapeHTML(r.oldText)}</td>`;
+                    html += `<td class="diff-cell diff-num-cell empty-cell"></td>`;
+                    html += `<td class="diff-cell diff-code-cell empty-cell"></td>`;
+                } else if (r.type === 'added') {
+                    html += `<td class="diff-cell diff-num-cell empty-cell"></td>`;
+                    html += `<td class="diff-cell diff-code-cell empty-cell"></td>`;
+                    html += `<td class="diff-cell diff-num-cell diff-cell-added">${r.newNum}</td>`;
+                    html += `<td class="diff-cell diff-code-cell diff-cell-added">+ ${r.isMarkup ? r.newText : escapeHTML(r.newText)}</td>`;
+                } else if (r.type === 'modified') {
+                    html += `<td class="diff-cell diff-num-cell diff-cell-removed">${r.oldNum}</td>`;
+                    html += `<td class="diff-cell diff-code-cell diff-cell-removed">- ${r.oldText}</td>`;
+                    html += `<td class="diff-cell diff-num-cell diff-cell-added">${r.newNum}</td>`;
+                    html += `<td class="diff-cell diff-code-cell diff-cell-added">+ ${r.newText}</td>`;
+                }
+                html += `</tr>`;
+            }
+            html += `</tbody></table>`;
+        } else {
+            html += `<table class="diff-table unified">`;
+            html += `<colgroup><col style="width:50px;"><col style="width:50px;"><col></colgroup>`;
+            html += `<tbody>`;
+            for (const r of rows) {
+                if (r.type === 'unchanged') {
+                    html += `<tr class="diff-row diff-row-unchanged">`;
+                    html += `<td class="diff-cell diff-num-cell">${r.oldNum}</td>`;
+                    html += `<td class="diff-cell diff-num-cell">${r.newNum}</td>`;
+                    html += `<td class="diff-cell diff-code-cell">  ${r.isMarkup ? r.oldText : escapeHTML(r.oldText)}</td>`;
+                    html += `</tr>`;
+                } else if (r.type === 'removed') {
+                    html += `<tr class="diff-row diff-row-removed">`;
+                    html += `<td class="diff-cell diff-num-cell">${r.oldNum}</td>`;
+                    html += `<td class="diff-cell diff-num-cell"></td>`;
+                    html += `<td class="diff-cell diff-code-cell">- ${r.isMarkup ? r.oldText : escapeHTML(r.oldText)}</td>`;
+                    html += `</tr>`;
+                } else if (r.type === 'added') {
+                    html += `<tr class="diff-row diff-row-added">`;
+                    html += `<td class="diff-cell diff-num-cell"></td>`;
+                    html += `<td class="diff-cell diff-num-cell">${r.newNum}</td>`;
+                    html += `<td class="diff-cell diff-code-cell">+ ${r.isMarkup ? r.newText : escapeHTML(r.newText)}</td>`;
+                    html += `</tr>`;
+                } else if (r.type === 'modified') {
+                    html += `<tr class="diff-row diff-row-removed">`;
+                    html += `<td class="diff-cell diff-num-cell">${r.oldNum}</td>`;
+                    html += `<td class="diff-cell diff-num-cell"></td>`;
+                    html += `<td class="diff-cell diff-code-cell">- ${r.oldText}</td>`;
+                    html += `</tr>`;
+                    
+                    html += `<tr class="diff-row diff-row-added">`;
+                    html += `<td class="diff-cell diff-num-cell"></td>`;
+                    html += `<td class="diff-cell diff-num-cell">${r.newNum}</td>`;
+                    html += `<td class="diff-cell diff-code-cell">+ ${r.newText}</td>`;
+                    html += `</tr>`;
+                }
+            }
+            html += `</tbody></table>`;
+        }
+        
+        diffContainer.innerHTML = html;
     } catch (err) {
-        diffContainer.innerHTML = `<div style="color:var(--danger);">Error: ${err.message}</div>`;
+        diffContainer.innerHTML = `<div style="color:var(--danger);padding:24px 32px;">Error: ${err.message}</div>`;
     }
 }
 
