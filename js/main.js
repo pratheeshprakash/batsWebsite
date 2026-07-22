@@ -3084,13 +3084,31 @@ if (btnGoogleSignIn) {
     });
 }
 
+// Strict local environment check to ensure bypass button and bypass auth parameters are NEVER allowed on production builds / public domains
+function isLocalHost() {
+    const hn = window.location.hostname;
+    return hn === "localhost" ||
+           hn === "127.0.0.1" ||
+           hn === "[::1]" ||
+           hn.endsWith(".local") ||
+           /^192\.168\.\d{1,3}\.\d{1,3}$/.test(hn) ||
+           /^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(hn) ||
+           /^172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}$/.test(hn);
+}
+
 if (btnDevBypass) {
-    btnDevBypass.addEventListener("click", async () => {
-        if (authOverlay) authOverlay.style.display = "none";
-        localStorage.setItem("dev_bypass", "true");
-        await bootstrapApp();
-        showToast("Logged in via Dev Bypass", "success");
-    });
+    if (isLocalHost()) {
+        btnDevBypass.style.display = "flex";
+        btnDevBypass.addEventListener("click", async () => {
+            if (authOverlay) authOverlay.style.display = "none";
+            localStorage.setItem("dev_bypass", "true");
+            await bootstrapApp();
+            showToast("Logged in via Dev Bypass", "success");
+        });
+    } else {
+        btnDevBypass.style.display = "none";
+        localStorage.removeItem("dev_bypass");
+    }
 }
 
 if (btnLogout) {
@@ -3151,11 +3169,14 @@ async function removeSplash() {
     if (!intro) return;
 
     let authenticated = false;
-    const isBypass = window.location.search.includes("bypass=true") || localStorage.getItem("dev_bypass") === "true";
+    const isBypassAllowed = isLocalHost() && (window.location.search.includes("bypass=true") || localStorage.getItem("dev_bypass") === "true");
 
-    if (isBypass) {
+    if (isBypassAllowed) {
         authenticated = true;
     } else {
+        if (!isLocalHost()) {
+            localStorage.removeItem("dev_bypass");
+        }
         try {
             const { data: { session }, error } = await supabase.auth.getSession();
             if (session && !error) {
