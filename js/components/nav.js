@@ -59,4 +59,9 @@ export function switchDocType(type) {
 
     // Load versions for this type
     loadVersions(type);
+
+    // Auto-close mobile drawer if open
+    if (typeof window.closeMobileDrawer === "function") {
+        window.closeMobileDrawer();
+    }
 }

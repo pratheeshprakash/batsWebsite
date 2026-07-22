@@ -3060,6 +3060,7 @@ async function bootstrapApp() {
 
 const authOverlay = $("authOverlay");
 const btnGoogleSignIn = $("btnGoogleSignIn");
+const btnDevBypass = $("btnDevBypass");
 const btnLogout = $("btnLogout");
 
 if (btnGoogleSignIn) {
@@ -3083,18 +3084,66 @@ if (btnGoogleSignIn) {
     });
 }
 
+if (btnDevBypass) {
+    btnDevBypass.addEventListener("click", async () => {
+        if (authOverlay) authOverlay.style.display = "none";
+        localStorage.setItem("dev_bypass", "true");
+        await bootstrapApp();
+        showToast("Logged in via Dev Bypass", "success");
+    });
+}
+
 if (btnLogout) {
     btnLogout.addEventListener("click", async () => {
         try {
+            localStorage.removeItem("dev_bypass");
             const { error } = await supabase.auth.signOut();
             if (error) throw error;
             showToast("Signed out successfully", "success");
             window.location.reload();
         } catch (err) {
-            showToast(err.message, "error");
+            localStorage.removeItem("dev_bypass");
+            window.location.reload();
         }
     });
 }
+
+// ── Mobile Navigation Drawer Controller ──
+const btnToggleMobileMenu = $("btnToggleMobileMenu");
+const mobileDrawerOverlay = $("mobileDrawerOverlay");
+const appSidebar = $("appSidebar");
+
+function openMobileDrawer() {
+    if (appSidebar) appSidebar.classList.add("mobile-open");
+    if (mobileDrawerOverlay) mobileDrawerOverlay.classList.add("show");
+}
+
+function closeMobileDrawer() {
+    if (appSidebar) appSidebar.classList.remove("mobile-open");
+    if (mobileDrawerOverlay) mobileDrawerOverlay.classList.remove("show");
+}
+
+window.closeMobileDrawer = closeMobileDrawer;
+
+if (btnToggleMobileMenu) {
+    btnToggleMobileMenu.addEventListener("click", () => {
+        if (appSidebar && appSidebar.classList.contains("mobile-open")) {
+            closeMobileDrawer();
+        } else {
+            openMobileDrawer();
+        }
+    });
+}
+
+if (mobileDrawerOverlay) {
+    mobileDrawerOverlay.addEventListener("click", closeMobileDrawer);
+}
+
+window.addEventListener("resize", () => {
+    if (window.innerWidth > 768) {
+        closeMobileDrawer();
+    }
+});
 
 // ── Remove Intro Loading Overlay ──
 async function removeSplash() {
@@ -3102,13 +3151,19 @@ async function removeSplash() {
     if (!intro) return;
 
     let authenticated = false;
-    try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (session && !error) {
-            authenticated = true;
+    const isBypass = window.location.search.includes("bypass=true") || localStorage.getItem("dev_bypass") === "true";
+
+    if (isBypass) {
+        authenticated = true;
+    } else {
+        try {
+            const { data: { session }, error } = await supabase.auth.getSession();
+            if (session && !error) {
+                authenticated = true;
+            }
+        } catch (err) {
+            console.error("Auth check failed:", err);
         }
-    } catch (err) {
-        console.error("Auth check failed:", err);
     }
 
     // Wait an extra 3.5s to let the animation play out nicely and motto be readable

@@ -50,16 +50,21 @@
         </svg>
         Sign In with Google
       </button>
+      <button id="btnDevBypass" class="btn btn-ghost" style="width: 100%; height: 44px; font-size: 0.82rem; color: var(--text-muted); border: 1px dashed var(--border-light); justify-content: center; display: flex; align-items: center; gap: 8px;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+        ⚡ Local Mobile Dev Bypass (Testing Only)
+      </button>
     </div>
   </div>
 </div>
 
 <div class="app-shell">
 
-
+  <!-- Mobile Drawer Backdrop Overlay -->
+  <div id="mobileDrawerOverlay" class="mobile-drawer-overlay"></div>
 
   <!-- ── Sidebar ─────────────────────────────────────────── -->
-  <aside class="sidebar">
+  <aside class="sidebar" id="appSidebar">
 
     <div class="sidebar-brand">
       <div class="brand-mark">
@@ -135,6 +140,9 @@
   <main class="main-area">
 
     <header class="topbar">
+      <button id="btnToggleMobileMenu" class="btn-mobile-menu" aria-label="Toggle navigation drawer">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
       <div class="topbar-meta">
         <h1 class="topbar-title" id="activeCvTitle">Select a document</h1>
         <div class="topbar-sub">

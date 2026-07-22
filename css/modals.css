@@ -317,3 +317,21 @@
   background: currentColor;
   flex-shrink: 0;
 }
+
+/* Mobile Modal Responsiveness */
+@media (max-width: 768px) {
+  .modal-veil {
+    padding: 16px;
+  }
+  .modal-card {
+    padding: 20px;
+    max-width: 92vw;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  .modal-card.diff-card {
+    width: 96vw;
+    max-width: 96vw;
+    height: 85vh;
+  }
+}

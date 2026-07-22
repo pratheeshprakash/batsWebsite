@@ -154,6 +154,10 @@ async function selectVersion(v) {
         state.activeJson = await api.fetchDocumentJson(type, v.filename);
         renderPaperSheet(state.activeJson, type);
         markClean();
+        // Auto-close mobile drawer if open
+        if (typeof window.closeMobileDrawer === "function") {
+            window.closeMobileDrawer();
+        }
     } catch (err) {
         paperSheet.innerHTML = `<div style="color:red;padding:20px;">Error: ${err.message}</div>`;
         showToast("Failed to load document", "error");
