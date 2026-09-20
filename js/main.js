@@ -3,6 +3,8 @@ import { $, showToast, debounce, formatDateToUI, parseDateFromUI } from "./utils
 import * as api from "./api.js";
 import { supabase } from "./supabase-client.js";
 import { translateCvToTypst, translateDocToTypst } from "./schema-to-typst.js";
+import { initAutocorrect, scanPaperSheet } from "./components/autocorrect.js";
+import { initJobs, showJobsPanel, hideJobsPanel, isJobsTab, renderJobsSidebar } from "./components/jobs.js";
 
 
 // ── Config ─────────────────────────────────────────────────────────────────
@@ -648,6 +650,15 @@ async function switchDocType(type) {
     state.activeJson = null;
     updateReminderButtonState();
 
+    // ── Jobs tab special handling ──────────────────────────────────────────
+    if (isJobsTab(type)) {
+        showJobsPanel();
+        const sidePanel = document.getElementById("sidePanel");
+        if (sidePanel) renderJobsSidebar(sidePanel);
+    } else {
+        hideJobsPanel();
+    }
+
     // Load active tab theme (no save/persist)
     const tab = activeTabs.find(t => t.type === type);
     const theme = tab ? (tab.theme || 'professional-navy') : 'professional-navy';
@@ -658,10 +669,12 @@ async function switchDocType(type) {
 
     // Topbar colour accent
     const meta = DOC_META[type];
-    document.documentElement.style.setProperty("--accent", meta.color);
-    document.documentElement.style.setProperty("--accent-glow", meta.color + "38");
-    document.documentElement.style.setProperty("--accent-dim",  meta.color + "1a");
-    document.documentElement.style.setProperty("--border-hi",   meta.color + "66");
+    if (meta) {
+        document.documentElement.style.setProperty("--accent", meta.color);
+        document.documentElement.style.setProperty("--accent-glow", meta.color + "38");
+        document.documentElement.style.setProperty("--accent-dim",  meta.color + "1a");
+        document.documentElement.style.setProperty("--border-hi",   meta.color + "66");
+    }
 
     // Show/hide Notes-specific template button section
     if (noteTemplateSection) {
@@ -678,12 +691,15 @@ async function switchDocType(type) {
         btnBranchNew.title = (type === "notes") ? "New Note" : "New Version";
     }
 
+    // Jobs tab doesn't use the paper/timeline paradigm
+    if (isJobsTab(type)) return;
+
     // Reset paper
     paperSheet.innerHTML = `<div class="empty-state">
-        <span style="display:inline-flex;color:var(--accent);margin-bottom:12px;">${meta.icon}</span>
-        <p>Select a ${meta.label} version from the sidebar</p>
+        <span style="display:inline-flex;color:var(--accent);margin-bottom:12px;">${meta ? meta.icon : ''}</span>
+        <p>Select a ${meta ? meta.label : ''} version from the sidebar</p>
     </div>`;
-    activeCvTitle.textContent = meta.label;
+    activeCvTitle.textContent = meta ? meta.label : '';
     activeCvTitle.contentEditable = "false";
     activeCvTitle.classList.remove("renamable");
     activeCvTitle.removeAttribute("title");
@@ -1168,7 +1184,7 @@ function renderPaperSheet(jsonObj, docType) {
                 </div>`;
             });
             html += `</div>
-                <button class="add-entry-btn" onclick="addLabelEntry(this,'${name}')">+ Add row</button>
+                <button class="add-entry-btn" onclick="addLabelEntry(this)">+ Add row</button>
             </div>`;
         } else if (Array.isArray(content) && content.length > 0 && (typeof content[0] === "string" || (typeof content[0] === "object" && content[0].bullet !== undefined))) {
             html += `<div class="resume-section" data-section-name="${name}" data-section-type="bullets">
@@ -1179,7 +1195,7 @@ function renderPaperSheet(jsonObj, docType) {
                 html += `<li style="margin-bottom:4px;display:flex;align-items:baseline;gap:4px;"><span class="bullet-dot" style="margin-right:8px;color:var(--paper-ink);opacity:0.8;user-select:none;">•</span><span contenteditable="true" data-placeholder="Bullet item details" style="flex:1;">${linkify(txt)}</span><button class="item-remove-btn" onclick="removeItem(this)" title="Remove bullet">&times;</button></li>`;
             });
             html += `</ul>
-                <button class="add-entry-btn" onclick="addBulletEntry(this,'${name}')">+ Add bullet</button>
+                <button class="add-entry-btn" onclick="addBulletEntry(this)">+ Add bullet</button>
             </div>`;
         } else {
             html += `<div class="resume-section" data-section-name="${name}" data-section-type="entries">
@@ -1249,7 +1265,7 @@ function renderPaperSheet(jsonObj, docType) {
                 });
             }
             html += `</div>
-                <button class="add-entry-btn" onclick="addEntryBlock(this, '${name}')" style="margin-top:8px;">+ Add entry block</button>
+                <button class="add-entry-btn" onclick="addEntryBlock(this)" style="margin-top:8px;">+ Add entry block</button>
             </div>`;
         }
     });
@@ -1324,6 +1340,9 @@ function renderPaperSheet(jsonObj, docType) {
         }
         // Mirroring entry-degree to entry-position removed to allow independent editing of degree and area/field of study.
     });
+
+    // Scan paper sheet contenteditable fields for LanguageTool spell & grammar check
+    setTimeout(() => scanPaperSheet(), 300);
 }
 
 // ── Add entry helpers ─────────────────────────────────────────────────────────
@@ -1413,7 +1432,8 @@ window.addEntryBlock = (btn, sn) => {
     div.className = "entry-item";
     div.style.cssText = "margin-bottom:16px;font-size:var(--paper-body-size);color:var(--paper-ink);position:relative;";
     
-    const isEducation = sn && sn.toLowerCase().includes("education");
+    const sectionName = sn || btn.closest(".resume-section")?.dataset?.sectionName || "";
+    const isEducation = sectionName.toLowerCase().includes("education");
     
     if (isEducation) {
         div.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:baseline;font-weight:bold;margin-bottom:2px;">
@@ -2118,10 +2138,14 @@ btnDownloadPdf.addEventListener("click", async () => {
         }
 
         let typstCode = "";
+        // Read the active paper theme and pass it to the translator
+        const activeThemeId = paperSheet ? paperSheet.getAttribute("data-theme") : null;
+        const activeTheme = THEMES_LIST.find(t => t.id === activeThemeId) || THEMES_LIST[0];
+        const themeConfig = { headingColor: activeTheme.headingColor, font: activeTheme.font, isSerif: activeTheme.isSerif };
         if (type === "cv") {
-            typstCode = translateCvToTypst(state.activeJson);
+            typstCode = translateCvToTypst(state.activeJson, themeConfig);
         } else {
-            typstCode = translateDocToTypst(state.activeJson);
+            typstCode = translateDocToTypst(state.activeJson, themeConfig);
         }
         
         console.log("Compiling Typst markup:\n", typstCode);
@@ -3053,6 +3077,8 @@ async function bootstrapApp() {
         }
         await loadRemindersInbox();
         await initTabs();
+        initAutocorrect();
+        initJobs();
     } catch (err) {
         console.error("Failed to bootstrap app data:", err);
     }

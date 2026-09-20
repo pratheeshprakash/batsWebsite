@@ -1,0 +1,919 @@
+/* ── Jobs Discovery Tab Styles ─────────────────────────────────────────────── */
+
+/* ── Jobs Panel Container ─────────────────────────────────────────────────── */
+.jobs-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* ── Stats Bar ────────────────────────────────────────────────────────────── */
+.jobs-stats-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border-light);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.jobs-stat-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  background: var(--bg-panel);
+  color: var(--text-muted);
+  border: 1px solid var(--border-light);
+  transition: var(--transition-fast);
+  cursor: pointer;
+}
+
+.jobs-stat-chip:hover {
+  border-color: var(--text-muted);
+}
+
+.jobs-stat-chip.active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-dim);
+}
+
+.jobs-stat-chip .stat-count {
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.jobs-stat-chip.active .stat-count {
+  color: var(--accent);
+}
+
+/* ── Filter Bar ───────────────────────────────────────────────────────────── */
+.jobs-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--border-light);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.jobs-search-input {
+  flex: 1;
+  min-width: 180px;
+  padding: 8px 14px 8px 36px;
+  border-radius: 8px;
+  border: 1px solid var(--border-light);
+  background: var(--bg-panel);
+  color: var(--text-main);
+  font-size: 0.82rem;
+  font-family: var(--font-sans);
+  outline: none;
+  transition: var(--transition-fast);
+}
+
+.jobs-search-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-dim);
+}
+
+.jobs-search-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 180px;
+}
+
+.jobs-search-wrap .search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.jobs-filter-select {
+  padding: 7px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-light);
+  background: var(--bg-panel);
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-family: var(--font-sans);
+  outline: none;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.jobs-filter-select:focus {
+  border-color: var(--accent);
+}
+
+/* ── Job Cards Feed ───────────────────────────────────────────────────────── */
+.jobs-feed {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.jobs-feed::-webkit-scrollbar {
+  width: 5px;
+}
+
+.jobs-feed::-webkit-scrollbar-thumb {
+  background: var(--border-light);
+  border-radius: 4px;
+}
+
+.job-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px;
+  border-radius: 10px;
+  border: 1px solid var(--border-light);
+  background: var(--bg-panel);
+  cursor: pointer;
+  transition: var(--transition-fast);
+  position: relative;
+}
+
+.job-card:hover {
+  border-color: var(--accent);
+  box-shadow: 0 0 20px var(--accent-glow);
+  transform: translateY(-1px);
+}
+
+.job-card.expanded {
+  border-color: var(--accent);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.job-card-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--accent-dim), var(--accent-glow));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--accent);
+  font-family: var(--font-display);
+  flex-shrink: 0;
+  border: 1px solid var(--border-light);
+}
+
+.job-card-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.job-card-title {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-main);
+  margin-bottom: 4px;
+  line-height: 1.3;
+}
+
+.job-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+.job-card-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.job-card-tags {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.job-card-tag {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.66rem;
+  font-weight: 500;
+  background: var(--bg-hover);
+  color: var(--text-subtle);
+  border: 1px solid var(--border-light);
+}
+
+/* ── Job Card Status Badge ────────────────────────────────────────────────── */
+.job-status-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 0.66rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.job-status-badge.new { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+.job-status-badge.viewed { background: rgba(161, 161, 170, 0.15); color: #a1a1aa; }
+.job-status-badge.saved { background: rgba(251, 191, 36, 0.15); color: #fbbf24; }
+.job-status-badge.applied { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+.job-status-badge.rejected { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+.job-status-badge.archived { background: rgba(113, 113, 122, 0.15); color: #71717a; }
+
+/* ── Job Card Actions Row ─────────────────────────────────────────────────── */
+.job-card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.job-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  border: 1px solid var(--border-light);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.job-action-btn:hover {
+  border-color: var(--text-muted);
+  color: var(--text-main);
+  background: var(--bg-hover);
+}
+
+.job-action-btn.primary {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-dim);
+}
+
+.job-action-btn.primary:hover {
+  background: var(--accent-glow);
+}
+
+/* ── Job Detail Expanded ──────────────────────────────────────────────────── */
+.job-detail-panel {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-light);
+}
+
+.job-detail-desc {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+  max-height: 300px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  padding-right: 8px;
+}
+
+.job-detail-desc::-webkit-scrollbar {
+  width: 4px;
+}
+
+.job-detail-desc::-webkit-scrollbar-thumb {
+  background: var(--border-light);
+  border-radius: 4px;
+}
+
+/* ── Empty State ──────────────────────────────────────────────────────────── */
+.jobs-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 16px;
+  color: var(--text-subtle);
+  text-align: center;
+  padding: 40px;
+}
+
+.jobs-empty svg {
+  color: var(--accent);
+  opacity: 0.5;
+}
+
+.jobs-empty p {
+  font-size: 0.85rem;
+  max-width: 320px;
+  line-height: 1.5;
+}
+
+/* ── Site Manager Sidebar ─────────────────────────────────────────────────── */
+.site-manager-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0;
+}
+
+.site-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  transition: var(--transition-fast);
+  cursor: default;
+}
+
+.site-item:hover {
+  background: var(--bg-hover);
+}
+
+.site-item-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.site-toggle {
+  position: relative;
+  width: 28px;
+  height: 16px;
+  border-radius: 10px;
+  background: var(--border-light);
+  cursor: pointer;
+  transition: var(--transition-fast);
+  flex-shrink: 0;
+  border: none;
+  padding: 0;
+}
+
+.site-toggle.active {
+  background: var(--accent);
+}
+
+.site-toggle::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: white;
+  transition: var(--transition-fast);
+}
+
+.site-toggle.active::after {
+  left: 14px;
+}
+
+.site-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.site-status-dot.idle { background: var(--text-subtle); }
+.site-status-dot.running { background: var(--warn); animation: pulse-dot 1s infinite; }
+.site-status-dot.success { background: var(--success); }
+.site-status-dot.error { background: var(--danger); }
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.site-item-delete {
+  opacity: 0;
+  background: none;
+  border: none;
+  color: var(--danger);
+  cursor: pointer;
+  padding: 2px;
+  font-size: 0.8rem;
+  transition: var(--transition-fast);
+}
+
+.site-item:hover .site-item-delete {
+  opacity: 0.7;
+}
+
+.site-item-delete:hover {
+  opacity: 1 !important;
+}
+
+/* ── Location Pill ────────────────────────────────────────────────────────── */
+.location-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 500;
+  background: var(--bg-panel);
+  color: var(--text-muted);
+  border: 1px solid var(--border-light);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.location-pill:hover {
+  border-color: var(--accent);
+  color: var(--text-main);
+}
+
+/* ── Application Wizard Overlay ───────────────────────────────────────────── */
+.apply-wizard-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  align-items: center;
+  justify-content: center;
+}
+
+.apply-wizard-overlay.open {
+  display: flex;
+}
+
+.apply-wizard {
+  width: 95vw;
+  max-width: 1100px;
+  max-height: 90vh;
+  background: var(--bg-sidebar);
+  border: 1px solid var(--border-light);
+  border-radius: 16px;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.apply-wizard-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border-light);
+  flex-shrink: 0;
+}
+
+.apply-wizard-header h2 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-main);
+  font-family: var(--font-display);
+}
+
+.apply-wizard-steps {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 24px;
+  flex-shrink: 0;
+}
+
+.wizard-step-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  color: var(--text-subtle);
+  font-weight: 500;
+}
+
+.wizard-step-indicator.active {
+  color: var(--accent);
+}
+
+.wizard-step-indicator.completed {
+  color: var(--success);
+}
+
+.wizard-step-dot {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  border: 2px solid var(--border-light);
+  color: var(--text-subtle);
+}
+
+.wizard-step-indicator.active .wizard-step-dot {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-dim);
+}
+
+.wizard-step-indicator.completed .wizard-step-dot {
+  border-color: var(--success);
+  color: white;
+  background: var(--success);
+}
+
+.wizard-step-line {
+  width: 24px;
+  height: 2px;
+  background: var(--border-light);
+  border-radius: 1px;
+}
+
+.wizard-step-line.completed {
+  background: var(--success);
+}
+
+.apply-wizard-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+}
+
+.apply-wizard-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 24px;
+  border-top: 1px solid var(--border-light);
+  flex-shrink: 0;
+}
+
+/* ── Wizard Step 1: Choose CV ─────────────────────────────────────────────── */
+.wizard-job-summary {
+  padding: 14px 18px;
+  border-radius: 10px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-light);
+  margin-bottom: 20px;
+}
+
+.wizard-job-summary h3 {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--text-main);
+  margin-bottom: 4px;
+}
+
+.wizard-job-summary .meta {
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.wizard-cv-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.wizard-cv-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--border-light);
+  background: var(--bg-panel);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.wizard-cv-option:hover {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+}
+
+.wizard-cv-option.selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-dim);
+}
+
+.wizard-cv-option .cv-radio {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--border-focus);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition-fast);
+}
+
+.wizard-cv-option.selected .cv-radio {
+  border-color: var(--accent);
+}
+
+.wizard-cv-option.selected .cv-radio::after {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.wizard-cv-info {
+  flex: 1;
+}
+
+.wizard-cv-info .cv-name {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.wizard-cv-info .cv-detail {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+/* ── Wizard Step 2: Split-Screen Editor ───────────────────────────────────── */
+.wizard-split-screen {
+  display: flex;
+  gap: 0;
+  height: calc(90vh - 180px);
+  max-height: 650px;
+}
+
+.wizard-job-pane {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border-light);
+  overflow: hidden;
+}
+
+.wizard-cv-pane {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.wizard-pane-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--border-light);
+  flex-shrink: 0;
+}
+
+.wizard-pane-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+.wizard-pane-body::-webkit-scrollbar {
+  width: 4px;
+}
+
+.wizard-pane-body::-webkit-scrollbar-thumb {
+  background: var(--border-light);
+  border-radius: 4px;
+}
+
+.wizard-job-desc-content {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+
+/* Paper sheet inside wizard — override max-width */
+.wizard-cv-pane .paper-sheet {
+  max-width: 100% !important;
+  margin: 0 !important;
+  box-shadow: none !important;
+  border: 1px solid var(--border-light) !important;
+  border-radius: 8px !important;
+  min-height: auto !important;
+}
+
+/* ── Wizard Step 3: Confirm ───────────────────────────────────────────────── */
+.wizard-confirm-summary {
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.wizard-confirm-summary .confirm-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-light);
+  font-size: 0.82rem;
+}
+
+.wizard-confirm-summary .confirm-label {
+  color: var(--text-subtle);
+  font-weight: 500;
+  min-width: 80px;
+}
+
+.wizard-confirm-summary .confirm-value {
+  color: var(--text-main);
+  font-weight: 600;
+}
+
+.wizard-status-options {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.wizard-status-option {
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border: 1px solid var(--border-light);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.wizard-status-option:hover {
+  border-color: var(--text-muted);
+}
+
+.wizard-status-option.selected {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+  color: var(--accent);
+}
+
+/* ── Wizard Step 4: Done ──────────────────────────────────────────────────── */
+.wizard-done-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 420px;
+  margin: 24px auto 0;
+}
+
+.wizard-done-action {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  border-radius: 10px;
+  border: 1px solid var(--border-light);
+  background: var(--bg-panel);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.wizard-done-action:hover {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+}
+
+.wizard-done-action svg {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.wizard-done-action .action-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.wizard-done-action .action-desc {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+/* ── Scrape Button ────────────────────────────────────────────────────────── */
+.btn-scrape {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  border: 1px solid var(--accent);
+  background: var(--accent-dim);
+  color: var(--accent);
+  cursor: pointer;
+  transition: var(--transition-fast);
+  width: 100%;
+  justify-content: center;
+}
+
+.btn-scrape:hover {
+  background: var(--accent-glow);
+}
+
+.btn-scrape:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-scrape.loading svg {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  100% { transform: rotate(360deg); }
+}
+
+/* ── Responsive: Mobile ───────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .jobs-stats-bar {
+    padding: 10px 14px;
+    gap: 6px;
+  }
+
+  .jobs-filter-bar {
+    padding: 10px 14px;
+  }
+
+  .jobs-feed {
+    padding: 10px 14px;
+  }
+
+  .job-card {
+    padding: 12px;
+    gap: 10px;
+  }
+
+  .job-card-avatar {
+    width: 36px;
+    height: 36px;
+    font-size: 0.9rem;
+  }
+
+  /* Wizard split-screen → tabbed on mobile */
+  .wizard-split-screen {
+    flex-direction: column;
+    height: auto;
+    max-height: none;
+  }
+
+  .wizard-job-pane {
+    border-right: none;
+    border-bottom: 1px solid var(--border-light);
+    max-height: 200px;
+  }
+
+  .wizard-cv-pane {
+    max-height: 400px;
+  }
+
+  .apply-wizard {
+    width: 100vw;
+    max-width: 100vw;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+}

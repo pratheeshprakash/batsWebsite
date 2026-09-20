@@ -1,0 +1,175 @@
+/* ── Autocorrect Inline Highlights & Floating Popover ── */
+
+.autocorrect-typo {
+  border-bottom: 2px dotted #f59e0b !important;
+  cursor: pointer;
+  background: rgba(245, 158, 11, 0.08);
+  border-radius: 2px;
+  display: inline;
+  padding: 0 1px;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+.autocorrect-typo:hover {
+  background: rgba(245, 158, 11, 0.2);
+}
+
+.autocorrect-grammar {
+  border-bottom: 2px dotted #10b981 !important;
+  cursor: pointer;
+  background: rgba(16, 185, 129, 0.08);
+  border-radius: 2px;
+  display: inline;
+  padding: 0 1px;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+.autocorrect-grammar:hover {
+  background: rgba(16, 185, 129, 0.2);
+}
+
+.autocorrect-style {
+  border-bottom: 2px dotted #3b82f6 !important;
+  cursor: pointer;
+  background: rgba(59, 130, 246, 0.08);
+  border-radius: 2px;
+  display: inline;
+  padding: 0 1px;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+.autocorrect-style:hover {
+  background: rgba(59, 130, 246, 0.2);
+}
+
+.autocorrect-badge {
+  font-family: var(--font-display);
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.autocorrect-badge.spelling {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--warn);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+.autocorrect-badge.grammar {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--success);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+.autocorrect-badge.style {
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--accent);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.autocorrect-msg {
+  font-size: 0.8rem;
+  color: var(--text-main);
+  line-height: 1.4;
+  margin: 2px 0 4px;
+}
+
+/* Floating Popover Container */
+.autocorrect-popover {
+  position: absolute;
+  z-index: 1000;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  padding: 10px 14px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  backdrop-filter: var(--blur-panel);
+  -webkit-backdrop-filter: var(--blur-panel);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 180px;
+  animation: autocorrectPop 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+  font-family: var(--font-sans);
+}
+
+@keyframes autocorrectPop {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.autocorrect-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.autocorrect-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-subtle);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.autocorrect-typo-str {
+  font-size: 0.78rem;
+  color: var(--danger);
+  text-decoration: line-through;
+  font-family: monospace;
+}
+
+.autocorrect-suggestions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.btn-autocorrect-suggest {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  color: var(--success);
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-align: left;
+}
+
+.btn-autocorrect-suggest:hover {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: var(--success);
+  transform: translateY(-1px);
+}
+
+.btn-autocorrect-ignore {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: transparent;
+  border: 1px solid var(--border-light);
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  cursor: pointer;
+  transition: var(--transition-fast);
+  margin-top: 2px;
+}
+
+.btn-autocorrect-ignore:hover {
+  background: var(--bg-hover);
+  color: var(--text-main);
+  border-color: var(--border-focus);
+}

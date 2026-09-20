@@ -37,22 +37,23 @@
 
 .paper-sheet {
   /* Dynamic themes typography, colors, rules, and layout variables */
+  /* Sans-serif themes use Arial to match Liberation Sans in the exported PDF */
   --paper-heading-color:    #004f90;
-  --paper-heading-font:     'Source Sans 3', 'Source Sans Pro', sans-serif;
+  --paper-heading-font:     Arial, Helvetica, sans-serif;
   --paper-heading-weight:   700;
-  --paper-heading-size:     1.15rem;
+  --paper-heading-size:     1rem;
   --paper-heading-spacing:  -0.01em;
-  --paper-body-font:        'Source Sans 3', 'Source Sans Pro', sans-serif;
+  --paper-body-font:        Arial, Helvetica, sans-serif;
   --paper-body-weight:      400;
-  --paper-body-size:        0.94rem;
-  --paper-body-line-height: 1.6;
-  --paper-name-size:        2.2rem;
+  --paper-body-size:        0.85rem;
+  --paper-body-line-height: 1.45;
+  --paper-name-size:        1.7rem;
   --paper-name-color:       #004f90;
   --paper-rule-height:      2px;
   --paper-rule-color:       #004f90;
   --paper-rule-opacity:     0.8;
-  --paper-entry-gap:        28px;
-  --paper-bullet-indent:    18px;
+  --paper-entry-gap:        16px;
+  --paper-bullet-indent:    14px;
 
   background: var(--paper-bg);
   color: var(--paper-ink);
@@ -80,21 +81,21 @@
 /* Theme: Professional Navy */
 .paper-sheet[data-theme="professional-navy"] {
   --paper-heading-color:    #004f90;
-  --paper-heading-font:     'Source Sans 3', 'Source Sans Pro', sans-serif;
+  --paper-heading-font:     Arial, Helvetica, sans-serif;
   --paper-heading-weight:   700;
-  --paper-heading-size:     1.15rem;
+  --paper-heading-size:     1rem;
   --paper-heading-spacing:  -0.01em;
-  --paper-body-font:        'Source Sans 3', 'Source Sans Pro', sans-serif;
+  --paper-body-font:        Arial, Helvetica, sans-serif;
   --paper-body-weight:      400;
-  --paper-body-size:        0.94rem;
-  --paper-body-line-height: 1.6;
-  --paper-name-size:        2.2rem;
+  --paper-body-size:        0.85rem;
+  --paper-body-line-height: 1.45;
+  --paper-name-size:        1.7rem;
   --paper-name-color:       #004f90;
   --paper-rule-height:      2px;
   --paper-rule-color:       #004f90;
   --paper-rule-opacity:     0.8;
-  --paper-entry-gap:        28px;
-  --paper-bullet-indent:    18px;
+  --paper-entry-gap:        16px;
+  --paper-bullet-indent:    14px;
 }
 
 /* Theme: Minimal Clean */
@@ -102,19 +103,19 @@
   --paper-heading-color:    #1a1a1a;
   --paper-heading-font:     'Inter', system-ui, sans-serif;
   --paper-heading-weight:   600;
-  --paper-heading-size:     1.05rem;
+  --paper-heading-size:     0.95rem;
   --paper-heading-spacing:  0;
   --paper-body-font:        'Inter', system-ui, sans-serif;
   --paper-body-weight:      400;
-  --paper-body-size:        0.9rem;
-  --paper-body-line-height: 1.65;
-  --paper-name-size:        1.9rem;
+  --paper-body-size:        0.82rem;
+  --paper-body-line-height: 1.45;
+  --paper-name-size:        1.55rem;
   --paper-name-color:       #1a1a1a;
   --paper-rule-height:      1px;
   --paper-rule-color:       #e5e5e5;
   --paper-rule-opacity:     1;
-  --paper-entry-gap:        24px;
-  --paper-bullet-indent:    16px;
+  --paper-entry-gap:        14px;
+  --paper-bullet-indent:    12px;
 }
 
 /* Theme: Classic Serif */
@@ -122,19 +123,19 @@
   --paper-heading-color:    #2c3e50;
   --paper-heading-font:     'Merriweather', Georgia, serif;
   --paper-heading-weight:   700;
-  --paper-heading-size:     1.1rem;
+  --paper-heading-size:     0.98rem;
   --paper-heading-spacing:  0.02em;
   --paper-body-font:        'Merriweather', Georgia, serif;
   --paper-body-weight:      400;
-  --paper-body-size:        0.88rem;
-  --paper-body-line-height: 1.75;
-  --paper-name-size:        2rem;
+  --paper-body-size:        0.8rem;
+  --paper-body-line-height: 1.55;
+  --paper-name-size:        1.65rem;
   --paper-name-color:       #2c3e50;
   --paper-rule-height:      1.5px;
   --paper-rule-color:       #2c3e50;
   --paper-rule-opacity:     0.6;
-  --paper-entry-gap:        30px;
-  --paper-bullet-indent:    20px;
+  --paper-entry-gap:        18px;
+  --paper-bullet-indent:    14px;
 }
 
 /* Theme: Modern Sans */
@@ -142,19 +143,19 @@
   --paper-heading-color:    #0ea5e9;
   --paper-heading-font:     'Outfit', system-ui, sans-serif;
   --paper-heading-weight:   700;
-  --paper-heading-size:     1.15rem;
+  --paper-heading-size:     1rem;
   --paper-heading-spacing:  -0.02em;
   --paper-body-font:        'Inter', system-ui, sans-serif;
   --paper-body-weight:      400;
-  --paper-body-size:        0.92rem;
-  --paper-body-line-height: 1.6;
-  --paper-name-size:        2.3rem;
+  --paper-body-size:        0.83rem;
+  --paper-body-line-height: 1.45;
+  --paper-name-size:        1.75rem;
   --paper-name-color:       #0ea5e9;
   --paper-rule-height:      2px;
   --paper-rule-color:       #0ea5e9;
   --paper-rule-opacity:     0.7;
-  --paper-entry-gap:        28px;
-  --paper-bullet-indent:    18px;
+  --paper-entry-gap:        16px;
+  --paper-bullet-indent:    14px;
 }
 
 /* Theme: Warm Earth */
@@ -162,39 +163,39 @@
   --paper-heading-color:    #92400e;
   --paper-heading-font:     'Playfair Display', Georgia, serif;
   --paper-heading-weight:   700;
-  --paper-heading-size:     1.2rem;
+  --paper-heading-size:     1.05rem;
   --paper-heading-spacing:  0.01em;
   --paper-body-font:        'Lora', Georgia, serif;
   --paper-body-weight:      400;
-  --paper-body-size:        0.9rem;
-  --paper-body-line-height: 1.7;
-  --paper-name-size:        2.1rem;
+  --paper-body-size:        0.82rem;
+  --paper-body-line-height: 1.5;
+  --paper-name-size:        1.65rem;
   --paper-name-color:       #92400e;
   --paper-rule-height:      2px;
   --paper-rule-color:       #92400e;
   --paper-rule-opacity:     0.6;
-  --paper-entry-gap:        26px;
-  --paper-bullet-indent:    18px;
+  --paper-entry-gap:        16px;
+  --paper-bullet-indent:    14px;
 }
 
 /* Theme: Monochrome */
 .paper-sheet[data-theme="monochrome"] {
   --paper-heading-color:    #000000;
-  --paper-heading-font:     'Source Sans 3', 'Source Sans Pro', sans-serif;
+  --paper-heading-font:     Arial, Helvetica, sans-serif;
   --paper-heading-weight:   700;
-  --paper-heading-size:     1.1rem;
+  --paper-heading-size:     0.98rem;
   --paper-heading-spacing:  0;
-  --paper-body-font:        'Source Sans 3', 'Source Sans Pro', sans-serif;
+  --paper-body-font:        Arial, Helvetica, sans-serif;
   --paper-body-weight:      400;
-  --paper-body-size:        0.92rem;
-  --paper-body-line-height: 1.6;
-  --paper-name-size:        2rem;
+  --paper-body-size:        0.83rem;
+  --paper-body-line-height: 1.45;
+  --paper-name-size:        1.6rem;
   --paper-name-color:       #000000;
   --paper-rule-height:      1px;
   --paper-rule-color:       #000000;
   --paper-rule-opacity:     1;
-  --paper-entry-gap:        24px;
-  --paper-bullet-indent:    16px;
+  --paper-entry-gap:        14px;
+  --paper-bullet-indent:    12px;
 }
 
 /* Paper contenteditable highlights */
@@ -229,13 +230,13 @@
 .paper-sheet h2 {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   font-family: var(--paper-heading-font);
   font-size: var(--paper-heading-size);
   font-weight: var(--paper-heading-weight);
   color: var(--paper-heading-color);
   margin-top: var(--paper-entry-gap);
-  margin-bottom: 12px;
+  margin-bottom: 8px;
   letter-spacing: var(--paper-heading-spacing);
 }
 .paper-sheet h2 .title-line {
@@ -245,11 +246,11 @@
   opacity: var(--paper-rule-opacity);
 }
 .paper-sheet ul { padding-left: var(--paper-bullet-indent); }
-.paper-sheet li { margin-bottom: 6px; line-height: 1.5; color: color-mix(in srgb, var(--paper-ink) 85%, transparent); }
+.paper-sheet li { margin-bottom: 3px; line-height: 1.4; color: color-mix(in srgb, var(--paper-ink) 85%, transparent); }
 
 /* Employment Projects & Sub-projects */
 .paper-sheet .entry-item {
-  margin-bottom: 16px;
+  margin-bottom: 10px;
   position: relative;
 }
 

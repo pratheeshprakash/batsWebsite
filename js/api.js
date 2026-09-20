@@ -596,12 +596,28 @@ export async function fetchTabs() {
         .maybeSingle();
 
     if (data && data.value) {
-        return data.value;
+        // Ensure the Jobs tab is always present as a default active tab
+        const config = data.value;
+        const activeTabs = config.active_tabs || [];
+        const suggestions = config.suggestions || [];
+        const JOBS_TAB = { type: "jobs", label: "Job Discovery", icon: "search", color: "#ef4444", isDefault: true, theme: "modern-sans" };
+        if (!activeTabs.some(t => t.type === "jobs")) {
+            activeTabs.push(JOBS_TAB);
+        } else {
+            // Mark existing jobs tab as default so it can't be removed
+            const existing = activeTabs.find(t => t.type === "jobs");
+            if (existing) existing.isDefault = true;
+        }
+        // Remove from suggestions if present
+        config.suggestions = suggestions.filter(s => s.type !== "jobs");
+        config.active_tabs = activeTabs;
+        return config;
     }
 
     const defaultTabs = {
         active_tabs: [
             { type: "cv", label: "CV Vault", icon: "file-text", color: "#4f8ef7", isDefault: true, theme: "professional-navy" },
+            { type: "jobs", label: "Job Discovery", icon: "search", color: "#ef4444", isDefault: true, theme: "modern-sans" },
             { type: "notes", label: "Notes", icon: "edit-3", color: "#fbbf24", isDefault: true, theme: "minimal-clean" }
         ],
         suggestions: [
@@ -714,6 +730,7 @@ export async function getAllLinks() {
 const DEFAULT_TABS_CONFIG = {
     active_tabs: [
         { type: "cv", label: "CV Vault", icon: "file-text", color: "#4f8ef7", isDefault: true, theme: "professional-navy" },
+        { type: "jobs", label: "Job Discovery", icon: "search", color: "#ef4444", isDefault: true, theme: "modern-sans" },
         { type: "notes", label: "Notes", icon: "edit-3", color: "#fbbf24", isDefault: true, theme: "minimal-clean" }
     ],
     suggestions: [
@@ -900,3 +917,93 @@ export async function seedUserData() {
         { user_id: user.id, doc_type: "notes", slug: "2026-07-20-stellar-dynamics", doc_data: SAMPLE_NOTE }
     ]);
 }
+
+// ── Jobs API Functions ─────────────────────────────────────────────────────
+
+/**
+ * Helper for jobs API calls — these go through the FastAPI backend
+ * (not directly to Supabase) because scraping logic runs server-side.
+ */
+async function jobsApiCall(method, path, body = null) {
+    const headers = { "Content-Type": "application/json" };
+    try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session && session.access_token) {
+            headers["Authorization"] = `Bearer ${session.access_token}`;
+        }
+    } catch (e) {}
+
+    const opts = { method, headers };
+    if (body) opts.body = JSON.stringify(body);
+    const resp = await fetch(`/api${path}`, opts);
+    if (!resp.ok) {
+        const err = await resp.json().catch(() => ({ detail: resp.statusText }));
+        throw new Error(err.detail || resp.statusText);
+    }
+    return resp.json();
+}
+
+// Job Sites
+export async function fetchJobSites() {
+    return jobsApiCall("GET", "/job_sites");
+}
+
+export async function addJobSite(site) {
+    return jobsApiCall("POST", "/job_sites", site);
+}
+
+export async function updateJobSite(siteId, data) {
+    return jobsApiCall("PUT", `/job_sites/${siteId}`, data);
+}
+
+export async function deleteJobSite(siteId) {
+    return jobsApiCall("DELETE", `/job_sites/${siteId}`);
+}
+
+// Scraping
+export async function scrapeJobSite(siteId) {
+    return jobsApiCall("POST", `/job_sites/${siteId}/scrape`);
+}
+
+export async function scrapeAllSites() {
+    return jobsApiCall("POST", "/job_sites/scrape_all");
+}
+
+// Registry
+export async function fetchSiteRegistry(country = "GLOBAL") {
+    return jobsApiCall("GET", `/job_sites/registry?country=${encodeURIComponent(country)}`);
+}
+
+export async function fetchFullRegistry() {
+    return jobsApiCall("GET", "/job_sites/registry_full");
+}
+
+// Job Listings
+export async function fetchJobs(filters = {}) {
+    const params = new URLSearchParams();
+    if (filters.status) params.set("status", filters.status);
+    if (filters.company) params.set("company", filters.company);
+    if (filters.search) params.set("search", filters.search);
+    if (filters.site_id) params.set("site_id", filters.site_id);
+    if (filters.limit) params.set("limit", filters.limit);
+    if (filters.offset) params.set("offset", filters.offset);
+    const qs = params.toString();
+    return jobsApiCall("GET", `/jobs${qs ? "?" + qs : ""}`);
+}
+
+export async function fetchJobDetail(jobId) {
+    return jobsApiCall("GET", `/jobs/${jobId}`);
+}
+
+export async function updateJobStatus(jobId, status) {
+    return jobsApiCall("PUT", `/jobs/${jobId}/status`, { status });
+}
+
+export async function deleteJob(jobId) {
+    return jobsApiCall("DELETE", `/jobs/${jobId}`);
+}
+
+export async function fetchJobStats() {
+    return jobsApiCall("GET", "/jobs/stats");
+}
+

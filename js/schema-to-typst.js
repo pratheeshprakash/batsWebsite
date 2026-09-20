@@ -3,7 +3,26 @@
  * ==================================
  * Translates RenderCV JSON and standard B.A.T.S. Document schemas to Typst markup
  * for high-quality, ATS-compatible PDF generation in the browser.
+ *
+ * Theme-aware: accepts an optional themeConfig object { headingColor, font, isSerif }
+ * to match the active paper sheet theme in the exported PDF.
  */
+
+// Map paper-sheet font names to fonts actually bundled in the Typst WASM compiler.
+// Liberation Sans is the only sans-serif bundled; Liberation Serif is the serif.
+const TYPST_FONT_MAP = {
+    'Source Sans 3':    'Liberation Sans',
+    'Inter':            'Liberation Sans',
+    'Outfit':           'Liberation Sans',
+    'Merriweather':     'Liberation Serif',
+    'Playfair Display': 'Liberation Serif',
+    'Lora':             'Liberation Serif',
+};
+
+function resolveTypstFont(paperFont, isSerif) {
+    if (TYPST_FONT_MAP[paperFont]) return TYPST_FONT_MAP[paperFont];
+    return isSerif ? 'Liberation Serif' : 'Liberation Sans';
+}
 
 function escapeAndFormatTypst(val) {
     if (typeof val !== "string") {
@@ -20,9 +39,6 @@ function escapeAndFormatTypst(val) {
         .replace(/>/g, "\\>");
         
     // 2. Convert markdown bold **text** to Typst bold *text*
-    res = res.replace(/\*\frac{.*?}\*\*/g, (match, p1) => {
-        return `*${p1}*`;
-    });
     res = res.replace(/\*\*(.*?)\*\*/g, (match, p1) => {
         return `*${p1}*`;
     });
@@ -39,59 +55,76 @@ function escapeAndFormatTypst(val) {
     return res;
 }
 
-export function translateCvToTypst(cvData) {
+/**
+ * @param {object} cvData - The parsed CV JSON (with top-level `cv` key)
+ * @param {object} [themeConfig] - Optional theme: { headingColor, font, isSerif }
+ */
+export function translateCvToTypst(cvData, themeConfig) {
     const cv = cvData.cv || {};
+    const hColor = (themeConfig && themeConfig.headingColor) || '#004f90';
+    const fontName = resolveTypstFont(
+        (themeConfig && themeConfig.font) || 'Source Sans 3',
+        (themeConfig && themeConfig.isSerif) || false
+    );
     let code = "";
 
-    // Set page parameters
+    // ── Page Setup ─────────────────────────────────────────────────────
     code += `#set page(
   paper: "a4",
-  margin: (x: 1.5cm, y: 1.8cm),
+  margin: (x: 1.8cm, y: 2cm),
 )\n`;
     
-    // Set text parameters with robust fallbacks
+    // ── Typography Defaults ────────────────────────────────────────────
     code += `#set text(
-  font: ("Source Sans 3", "Liberation Sans", "Arial", "Helvetica", "sans-serif"),
+  font: ("${fontName}", "Liberation Sans", "Arial", "Helvetica", "sans-serif"),
   size: 10pt,
-  fill: rgb("#1e293b"), // Slate 800
+  fill: rgb("#1e293b"),
 )\n`;
+
+    // ── Paragraph & List Global Defaults ───────────────────────────────
+    code += `#set par(leading: 0.55em)\n`;
+    code += `#set list(marker: [•], indent: 6pt, body-indent: 3pt, spacing: 4pt)\n`;
 
     // 1. Last Updated line (absolute top-right using #place to not shift name)
     code += `#place(top + right, dy: 10pt)[#text(size: 7.5pt, fill: rgb("#7f7f7f"), style: "italic")[Last updated in July 2026]]\n`;
 
-    // 2. Name Header (centered, large blue)
+    // 2. Name Header (centered, themed color)
     if (cv.name) {
-        code += `#align(center)[\n  #text(size: 26pt, weight: "bold", fill: rgb("#004f90"))[${escapeAndFormatTypst(cv.name)}]\n]\n#v(2pt)\n`;
+        code += `#align(center)[\n  #text(size: 20pt, weight: "bold", fill: rgb("${hColor}"))[${escapeAndFormatTypst(cv.name)}]\n]\n#v(2pt)\n`;
     }
 
-    // 3. Contact Details block (centered, no-tofu clean layout)
-    let contactItems = [];
-    if (cv.location) contactItems.push(escapeAndFormatTypst(cv.location));
-    if (cv.email) contactItems.push(escapeAndFormatTypst(cv.email));
-    if (cv.phone) contactItems.push(escapeAndFormatTypst(cv.phone));
+    // 3. Contact Details block (centered, split across rows to prevent wrapping)
+    let contactRow1 = [];
+    let contactRow2 = [];
+    if (cv.location) contactRow1.push(escapeAndFormatTypst(cv.location));
+    if (cv.email) contactRow1.push(escapeAndFormatTypst(cv.email));
+    if (cv.phone) contactRow1.push(escapeAndFormatTypst(cv.phone));
     
     if (cv.social_networks) {
         cv.social_networks.forEach(net => {
             if (net.network.toLowerCase() === "linkedin") {
-                contactItems.push(`linkedin.com/in/${escapeAndFormatTypst(net.username)}`);
+                contactRow2.push(`linkedin.com/in/${escapeAndFormatTypst(net.username)}`);
             } else {
-                contactItems.push(`${escapeAndFormatTypst(net.network)}: ${escapeAndFormatTypst(net.username)}`);
+                contactRow2.push(`${escapeAndFormatTypst(net.network)}: ${escapeAndFormatTypst(net.username)}`);
             }
         });
     }
     if (cv.website) {
         let cleanUrl = cv.website.replace(/^https?:\/\//, "");
-        contactItems.push(escapeAndFormatTypst(cleanUrl));
+        contactRow2.push(escapeAndFormatTypst(cleanUrl));
     }
 
-    if (contactItems.length > 0) {
-        // Group contact details into a clean centered row layout with pipe dividers
-        code += `#align(center)[\n  #text(size: 8.5pt, fill: rgb("#64748b"))[\n`;
-        code += `    ${contactItems.join("  |  ")}\n`;
-        code += `  ]\n]\n#v(10pt)\n`;
+    if (contactRow1.length > 0) {
+        code += `#align(center)[#text(size: 9pt, fill: rgb("#64748b"))[${contactRow1.join("  |  ")}]]\n`;
+    }
+    if (contactRow2.length > 0) {
+        code += `#align(center)[#text(size: 9pt, fill: rgb("#64748b"))[${contactRow2.join("  |  ")}]]\n`;
+    }
+    if (contactRow1.length > 0 || contactRow2.length > 0) {
+        code += `#v(6pt)\n`;
     }
 
-    // Render sections in explicit order
+    // ── Render Sections ────────────────────────────────────────────────
     if (cv.sections) {
         const sectionOrder = cv.section_order || Object.keys(cv.sections);
         sectionOrder.forEach(sectionTitle => {
@@ -100,23 +133,23 @@ export function translateCvToTypst(cvData) {
 
             code += `\n// ── ${sectionTitle} ──\n`;
             
-            // Header with line spanning to the right edge (Summary ────────────)
-            code += `#v(4pt)\n#grid(
+            // Section header with horizontal rule spanning to the right edge
+            code += `#v(6pt)\n#grid(
   columns: (auto, 1fr),
   align: (left, horizon),
-  gutter: 10pt,
-  [#text(weight: "bold", size: 12pt, fill: rgb("#004f90"))[${escapeAndFormatTypst(sectionTitle)}]],
-  [#line(length: 100%, stroke: 1.5pt + rgb("#004f90"))]
+  gutter: 8pt,
+  [#text(weight: "bold", size: 11pt, fill: rgb("${hColor}"))[${escapeAndFormatTypst(sectionTitle)}]],
+  [#line(length: 100%, stroke: 1.5pt + rgb("${hColor}"))]
 )\n#v(4pt)\n`;
 
             if (Array.isArray(entries)) {
                 entries.forEach(entry => {
                     if (typeof entry === "string") {
-                        // Paragraph / Text block (e.g. Summary)
-                        code += `${escapeAndFormatTypst(entry)}\n\n`;
+                        // Paragraph / Text block (e.g. Summary) — explicit par break
+                        code += `${escapeAndFormatTypst(entry)}\n\n#v(2pt)\n`;
                     } else if (typeof entry === "object") {
                         if (entry.label) {
-                            // Label Section: Languages, etc.
+                            // Label Section: Languages, Key Technologies, etc.
                             code += `- *${escapeAndFormatTypst(entry.label)}*: ${escapeAndFormatTypst(entry.details)}\n`;
                         } else if (entry.bullet) {
                             // Bullet Item Section: Professional Skills, Personal Skills, etc.
@@ -127,20 +160,30 @@ export function translateCvToTypst(cvData) {
                             const titleRight = (entry.start_date || entry.end_date) 
                                 ? `${entry.start_date || ""} -- ${entry.end_date || ""}`
                                 : "";
-                            const subLeft = entry.position || entry.area || entry.degree || "";
+                            let subLeft = entry.position || "";
+                            if (!subLeft) {
+                                // Education: show "Degree in Area"
+                                const degree = entry.studyType || entry.degree || "";
+                                const area = entry.area || "";
+                                if (degree && area) {
+                                    subLeft = `${degree} in ${area}`;
+                                } else {
+                                    subLeft = degree || area || "";
+                                }
+                            }
                             const subRight = entry.location || "";
 
-                            // Title line
+                            // Title line (Company / Dates)
                             if (titleLeft || titleRight) {
                                 code += `#grid(
   columns: (1fr, auto),
-  [*${escapeAndFormatTypst(titleLeft)}*], [${escapeAndFormatTypst(titleRight)}],
+  [*${escapeAndFormatTypst(titleLeft)}*], [#text(size: 10pt)[${escapeAndFormatTypst(titleRight)}]],
 )\n`;
                             }
 
-                            // Subtitle line
+                            // Subtitle line (Position / Location)
                             if (subLeft || subRight) {
-                                code += `#v(-4pt)\n#grid(
+                                code += `#v(-2pt)\n#grid(
   columns: (1fr, auto),
   [_${escapeAndFormatTypst(subLeft)}_], [#text(fill: rgb("#64748b"))[${escapeAndFormatTypst(subRight)}]],
 )\n`;
@@ -159,7 +202,7 @@ export function translateCvToTypst(cvData) {
                                 });
                             }
                             
-                            code += `#v(6pt)\n`;
+                            code += `#v(5pt)\n`;
                         }
                     }
                 });
@@ -170,26 +213,39 @@ export function translateCvToTypst(cvData) {
     return code;
 }
 
-export function translateDocToTypst(docData) {
+/**
+ * @param {object} docData - The parsed Document JSON (with top-level `document` key)
+ * @param {object} [themeConfig] - Optional theme: { headingColor, font, isSerif }
+ */
+export function translateDocToTypst(docData, themeConfig) {
     const doc = docData.document || {};
+    const hColor = (themeConfig && themeConfig.headingColor) || '#004f90';
+    const fontName = resolveTypstFont(
+        (themeConfig && themeConfig.font) || 'Source Sans 3',
+        (themeConfig && themeConfig.isSerif) || false
+    );
     let code = "";
 
-    // Set page parameters
+    // ── Page Setup ─────────────────────────────────────────────────────
     code += `#set page(
   paper: "a4",
   margin: (x: 2cm, y: 2.2cm),
 )\n`;
     
-    // Set text parameters with robust fallbacks
+    // ── Typography Defaults ────────────────────────────────────────────
     code += `#set text(
-  font: ("Source Sans 3", "Liberation Sans", "Arial", "Helvetica", "sans-serif"),
+  font: ("${fontName}", "Liberation Sans", "Arial", "Helvetica", "sans-serif"),
   size: 10.5pt,
-  fill: rgb("#1e293b"), // Slate 800
+  fill: rgb("#1e293b"),
 )\n`;
+
+    // ── Paragraph & List Global Defaults ───────────────────────────────
+    code += `#set par(leading: 0.55em)\n`;
+    code += `#set list(marker: [•], indent: 6pt, body-indent: 3pt, spacing: 4pt)\n`;
 
     // Title
     if (doc.title) {
-        code += `#align(center)[\n  #text(size: 22pt, weight: "bold", fill: rgb("#004f90"))[${escapeAndFormatTypst(doc.title)}]\n]\n`;
+        code += `#align(center)[\n  #text(size: 22pt, weight: "bold", fill: rgb("${hColor}"))[${escapeAndFormatTypst(doc.title)}]\n]\n`;
     }
 
     // Author
@@ -208,7 +264,7 @@ export function translateDocToTypst(docData) {
             if (!entries) return;
 
             code += `\n// ── ${sectionTitle} ──\n`;
-            code += `#text(weight: "bold", size: 14pt, fill: rgb("#004f90"))[${escapeAndFormatTypst(sectionTitle)}]\n\n`;
+            code += `#text(weight: "bold", size: 14pt, fill: rgb("${hColor}"))[${escapeAndFormatTypst(sectionTitle)}]\n\n`;
 
             if (Array.isArray(entries)) {
                 entries.forEach(entry => {
