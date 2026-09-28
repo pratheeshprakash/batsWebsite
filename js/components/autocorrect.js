@@ -115,6 +115,59 @@ export function initAutocorrect() {
     });
 }
 
+// Helper to get character offset of caret relative to a container element
+function getCaretCharacterOffset(element) {
+    let caretOffset = 0;
+    const doc = element.ownerDocument || document;
+    const win = doc.defaultView || window;
+    const sel = win.getSelection();
+    if (sel && sel.rangeCount > 0) {
+        const range = sel.getRangeAt(0);
+        if (element.contains(range.startContainer)) {
+            const preCaretRange = range.cloneRange();
+            preCaretRange.selectNodeContents(element);
+            preCaretRange.setEnd(range.startContainer, range.startOffset);
+            caretOffset = preCaretRange.toString().length;
+            return caretOffset;
+        }
+    }
+    return -1;
+}
+
+// Helper to restore caret character offset relative to a container element
+function setCaretCharacterOffset(element, offset) {
+    if (offset < 0) return;
+    const doc = element.ownerDocument || document;
+    const win = doc.defaultView || window;
+    const sel = win.getSelection();
+    if (!sel) return;
+
+    const range = doc.createRange();
+    let currentOffset = 0;
+    let found = false;
+
+    const walk = doc.createTreeWalker(element, NodeFilter.SHOW_TEXT, null, false);
+    let node;
+    while ((node = walk.nextNode())) {
+        const nodeLength = node.nodeValue.length;
+        if (currentOffset + nodeLength >= offset) {
+            range.setStart(node, offset - currentOffset);
+            range.collapse(true);
+            found = true;
+            break;
+        }
+        currentOffset += nodeLength;
+    }
+
+    if (!found) {
+        range.selectNodeContents(element);
+        range.collapse(false);
+    }
+
+    sel.removeAllRanges();
+    sel.addRange(range);
+}
+
 export function scanPaperSheet() {
     const paper = $("paperSheet");
     if (!paper) return;
@@ -126,6 +179,10 @@ export async function scanWithLanguageTool(el) {
     if (!el || el.dataset.autocorrectScanning) return;
     const rawText = el.innerText || el.textContent;
     if (!rawText || rawText.trim().length < 3) return;
+
+    const activeEl = document.activeElement;
+    const isFocused = activeEl && (activeEl === el || el.contains(activeEl));
+    const caretOffset = isFocused ? getCaretCharacterOffset(el) : -1;
 
     el.dataset.autocorrectScanning = "true";
     clearHighlights(el);
@@ -154,13 +211,16 @@ export async function scanWithLanguageTool(el) {
         if (data && data.matches && data.matches.length > 0) {
             highlightLanguageToolMatches(el, data.matches);
         } else {
-            scanAndHighlightElement(el);
+            scanAndHighlightElement(el, true);
         }
     } catch (err) {
         // Fallback to local dictionary scan if LanguageTool API is offline or times out
-        scanAndHighlightElement(el);
+        scanAndHighlightElement(el, true);
     } finally {
         delete el.dataset.autocorrectScanning;
+        if (isFocused && caretOffset >= 0) {
+            setCaretCharacterOffset(el, caretOffset);
+        }
     }
 }
 
@@ -245,8 +305,12 @@ function highlightLanguageToolMatches(el, matches) {
     });
 }
 
-export function scanAndHighlightElement(el) {
+export function scanAndHighlightElement(el, skipOuterCaretSave = false) {
     if (!el) return;
+    const activeEl = document.activeElement;
+    const isFocused = !skipOuterCaretSave && activeEl && (activeEl === el || el.contains(activeEl));
+    const caretOffset = isFocused ? getCaretCharacterOffset(el) : -1;
+
     clearHighlights(el);
 
     const walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null, false);
@@ -288,6 +352,10 @@ export function scanAndHighlightElement(el) {
             textNode.parentNode.replaceChild(frag, textNode);
         }
     });
+
+    if (isFocused && caretOffset >= 0) {
+        setCaretCharacterOffset(el, caretOffset);
+    }
 }
 
 function showPopover(targetSpan, typo, suggestions, message, category) {
