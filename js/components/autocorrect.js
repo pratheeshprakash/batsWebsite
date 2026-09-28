@@ -117,21 +117,87 @@ export function initAutocorrect() {
 
 // Helper to get character offset of caret relative to a container element
 function getCaretCharacterOffset(element) {
-    let caretOffset = 0;
     const doc = element.ownerDocument || document;
     const win = doc.defaultView || window;
     const sel = win.getSelection();
-    if (sel && sel.rangeCount > 0) {
-        const range = sel.getRangeAt(0);
-        if (element.contains(range.startContainer)) {
-            const preCaretRange = range.cloneRange();
-            preCaretRange.selectNodeContents(element);
-            preCaretRange.setEnd(range.startContainer, range.startOffset);
-            caretOffset = preCaretRange.toString().length;
-            return caretOffset;
+    if (!sel || sel.rangeCount === 0) return -1;
+
+    const range = sel.getRangeAt(0);
+    if (!element.contains(range.startContainer)) return -1;
+
+    const targetContainer = range.startContainer;
+    const targetOffset = range.startOffset;
+
+    let caretOffset = 0;
+    let found = false;
+
+    // Determine target text node and offset within that text node
+    let targetTextNode = null;
+    let targetTextOffset = 0;
+
+    if (targetContainer.nodeType === Node.TEXT_NODE) {
+        targetTextNode = targetContainer;
+        targetTextOffset = targetOffset;
+    } else if (targetContainer.nodeType === Node.ELEMENT_NODE) {
+        if (targetOffset > 0 && targetContainer.childNodes.length >= targetOffset) {
+            const childBefore = targetContainer.childNodes[targetOffset - 1];
+            if (childBefore.nodeType === Node.TEXT_NODE) {
+                targetTextNode = childBefore;
+                targetTextOffset = childBefore.nodeValue.length;
+            } else if (childBefore.nodeType === Node.ELEMENT_NODE) {
+                const walker = doc.createTreeWalker(childBefore, NodeFilter.SHOW_TEXT, null, false);
+                let lastText = null;
+                while (walker.nextNode()) lastText = walker.currentNode;
+                if (lastText) {
+                    targetTextNode = lastText;
+                    targetTextOffset = lastText.nodeValue.length;
+                }
+            }
+        } else if (targetContainer.childNodes.length > 0) {
+            const childAfter = targetContainer.childNodes[targetOffset] || targetContainer.childNodes[0];
+            if (childAfter.nodeType === Node.TEXT_NODE) {
+                targetTextNode = childAfter;
+                targetTextOffset = 0;
+            } else if (childAfter.nodeType === Node.ELEMENT_NODE) {
+                const walker = doc.createTreeWalker(childAfter, NodeFilter.SHOW_TEXT, null, false);
+                if (walker.nextNode()) {
+                    targetTextNode = walker.currentNode;
+                    targetTextOffset = 0;
+                }
+            }
         }
     }
-    return -1;
+
+    const walk = doc.createTreeWalker(element, NodeFilter.SHOW_TEXT, null, false);
+    let node;
+    while ((node = walk.nextNode())) {
+        if (targetTextNode && node === targetTextNode) {
+            caretOffset += targetTextOffset;
+            found = true;
+            break;
+        }
+        caretOffset += node.nodeValue.length;
+    }
+
+    if (!found) {
+        // Fallback using range cloning if exact text node wasn't matched
+        try {
+            const preCaretRange = range.cloneRange();
+            preCaretRange.selectNodeContents(element);
+            if (targetContainer.nodeType === Node.TEXT_NODE) {
+                preCaretRange.setEnd(targetContainer, targetOffset);
+            } else if (targetOffset > 0 && targetContainer.childNodes.length >= targetOffset) {
+                preCaretRange.setEndAfter(targetContainer.childNodes[targetOffset - 1]);
+            } else {
+                preCaretRange.setEnd(targetContainer, targetOffset);
+            }
+            return preCaretRange.toString().length;
+        } catch (e) {
+            return -1;
+        }
+    }
+
+    return found ? caretOffset : -1;
 }
 
 // Helper to restore caret character offset relative to a container element
@@ -148,20 +214,41 @@ function setCaretCharacterOffset(element, offset) {
 
     const walk = doc.createTreeWalker(element, NodeFilter.SHOW_TEXT, null, false);
     let node;
+    let lastNode = null;
+
     while ((node = walk.nextNode())) {
+        lastNode = node;
         const nodeLength = node.nodeValue.length;
-        if (currentOffset + nodeLength >= offset) {
+        if (currentOffset + nodeLength > offset) {
             range.setStart(node, offset - currentOffset);
             range.collapse(true);
             found = true;
             break;
+        } else if (currentOffset + nodeLength === offset) {
+            const nextNode = walk.nextNode();
+            if (nextNode) {
+                range.setStart(nextNode, 0);
+                range.collapse(true);
+                found = true;
+                break;
+            } else {
+                range.setStart(node, nodeLength);
+                range.collapse(true);
+                found = true;
+                break;
+            }
         }
         currentOffset += nodeLength;
     }
 
     if (!found) {
-        range.selectNodeContents(element);
-        range.collapse(false);
+        if (lastNode) {
+            range.setStart(lastNode, lastNode.nodeValue.length);
+            range.collapse(true);
+        } else {
+            range.selectNodeContents(element);
+            range.collapse(false);
+        }
     }
 
     sel.removeAllRanges();
