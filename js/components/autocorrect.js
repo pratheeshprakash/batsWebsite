@@ -57,16 +57,6 @@ export function initAutocorrect() {
     const paper = $("paperSheet");
     if (!paper) return;
 
-    let scanTimer = null;
-
-    function triggerScan(target) {
-        if (!target) return;
-        const editable = target.isContentEditable ? target : target.closest("[contenteditable='true']");
-        if (editable && !editable.closest(".autocorrect-popover")) {
-            scanWithLanguageTool(editable);
-        }
-    }
-
     // Remove any popover on outside click
     document.addEventListener("click", (e) => {
         if (activePopover && !activePopover.contains(e.target) && !e.target.closest(".autocorrect-typo, .autocorrect-grammar, .autocorrect-style")) {
@@ -92,184 +82,52 @@ export function initAutocorrect() {
         }
     });
 
-    // Debounced scan on typing pause (500ms)
-    paper.addEventListener("input", (e) => {
-        clearTimeout(scanTimer);
-        scanTimer = setTimeout(() => {
-            triggerScan(e.target);
-        }, 500);
-    });
-
-    // Immediate scan on Space or Enter key
-    paper.addEventListener("keyup", (e) => {
-        if (e.key === " " || e.key === "Enter") {
-            clearTimeout(scanTimer);
-            triggerScan(e.target);
+    // When an editable element gains focus, clean any existing highlight spans
+    // so the user edits pure native text with full browser spellcheck and zero cursor jumping
+    paper.addEventListener("focusin", (e) => {
+        const editable = e.target.isContentEditable ? e.target : e.target.closest("[contenteditable='true']");
+        if (editable && !editable.closest(".autocorrect-popover")) {
+            const hasSpans = editable.querySelector(".autocorrect-typo, .autocorrect-grammar, .autocorrect-style");
+            if (hasSpans) {
+                clearHighlights(editable);
+            }
         }
     });
 
-    // Scan editable elements on blur / focusout
+    // Scan editable elements on blur / focusout ONLY (never while typing)
     paper.addEventListener("focusout", (e) => {
-        clearTimeout(scanTimer);
-        triggerScan(e.target);
+        const editable = e.target.isContentEditable ? e.target : e.target.closest("[contenteditable='true']");
+        if (editable && !editable.closest(".autocorrect-popover")) {
+            setTimeout(() => {
+                const active = document.activeElement;
+                if (active !== editable && !editable.contains(active)) {
+                    scanWithLanguageTool(editable);
+                }
+            }, 60);
+        }
     });
-}
-
-// Helper to get character offset of caret relative to a container element
-function getCaretCharacterOffset(element) {
-    const doc = element.ownerDocument || document;
-    const win = doc.defaultView || window;
-    const sel = win.getSelection();
-    if (!sel || sel.rangeCount === 0) return -1;
-
-    const range = sel.getRangeAt(0);
-    if (!element.contains(range.startContainer)) return -1;
-
-    const targetContainer = range.startContainer;
-    const targetOffset = range.startOffset;
-
-    let caretOffset = 0;
-    let found = false;
-
-    // Determine target text node and offset within that text node
-    let targetTextNode = null;
-    let targetTextOffset = 0;
-
-    if (targetContainer.nodeType === Node.TEXT_NODE) {
-        targetTextNode = targetContainer;
-        targetTextOffset = targetOffset;
-    } else if (targetContainer.nodeType === Node.ELEMENT_NODE) {
-        if (targetOffset > 0 && targetContainer.childNodes.length >= targetOffset) {
-            const childBefore = targetContainer.childNodes[targetOffset - 1];
-            if (childBefore.nodeType === Node.TEXT_NODE) {
-                targetTextNode = childBefore;
-                targetTextOffset = childBefore.nodeValue.length;
-            } else if (childBefore.nodeType === Node.ELEMENT_NODE) {
-                const walker = doc.createTreeWalker(childBefore, NodeFilter.SHOW_TEXT, null, false);
-                let lastText = null;
-                while (walker.nextNode()) lastText = walker.currentNode;
-                if (lastText) {
-                    targetTextNode = lastText;
-                    targetTextOffset = lastText.nodeValue.length;
-                }
-            }
-        } else if (targetContainer.childNodes.length > 0) {
-            const childAfter = targetContainer.childNodes[targetOffset] || targetContainer.childNodes[0];
-            if (childAfter.nodeType === Node.TEXT_NODE) {
-                targetTextNode = childAfter;
-                targetTextOffset = 0;
-            } else if (childAfter.nodeType === Node.ELEMENT_NODE) {
-                const walker = doc.createTreeWalker(childAfter, NodeFilter.SHOW_TEXT, null, false);
-                if (walker.nextNode()) {
-                    targetTextNode = walker.currentNode;
-                    targetTextOffset = 0;
-                }
-            }
-        }
-    }
-
-    const walk = doc.createTreeWalker(element, NodeFilter.SHOW_TEXT, null, false);
-    let node;
-    while ((node = walk.nextNode())) {
-        if (targetTextNode && node === targetTextNode) {
-            caretOffset += targetTextOffset;
-            found = true;
-            break;
-        }
-        caretOffset += node.nodeValue.length;
-    }
-
-    if (!found) {
-        // Fallback using range cloning if exact text node wasn't matched
-        try {
-            const preCaretRange = range.cloneRange();
-            preCaretRange.selectNodeContents(element);
-            if (targetContainer.nodeType === Node.TEXT_NODE) {
-                preCaretRange.setEnd(targetContainer, targetOffset);
-            } else if (targetOffset > 0 && targetContainer.childNodes.length >= targetOffset) {
-                preCaretRange.setEndAfter(targetContainer.childNodes[targetOffset - 1]);
-            } else {
-                preCaretRange.setEnd(targetContainer, targetOffset);
-            }
-            return preCaretRange.toString().length;
-        } catch (e) {
-            return -1;
-        }
-    }
-
-    return found ? caretOffset : -1;
-}
-
-// Helper to restore caret character offset relative to a container element
-function setCaretCharacterOffset(element, offset) {
-    if (offset < 0) return;
-    const doc = element.ownerDocument || document;
-    const win = doc.defaultView || window;
-    const sel = win.getSelection();
-    if (!sel) return;
-
-    const range = doc.createRange();
-    let currentOffset = 0;
-    let found = false;
-
-    const walk = doc.createTreeWalker(element, NodeFilter.SHOW_TEXT, null, false);
-    let node;
-    let lastNode = null;
-
-    while ((node = walk.nextNode())) {
-        lastNode = node;
-        const nodeLength = node.nodeValue.length;
-        if (currentOffset + nodeLength > offset) {
-            range.setStart(node, offset - currentOffset);
-            range.collapse(true);
-            found = true;
-            break;
-        } else if (currentOffset + nodeLength === offset) {
-            const nextNode = walk.nextNode();
-            if (nextNode) {
-                range.setStart(nextNode, 0);
-                range.collapse(true);
-                found = true;
-                break;
-            } else {
-                range.setStart(node, nodeLength);
-                range.collapse(true);
-                found = true;
-                break;
-            }
-        }
-        currentOffset += nodeLength;
-    }
-
-    if (!found) {
-        if (lastNode) {
-            range.setStart(lastNode, lastNode.nodeValue.length);
-            range.collapse(true);
-        } else {
-            range.selectNodeContents(element);
-            range.collapse(false);
-        }
-    }
-
-    sel.removeAllRanges();
-    sel.addRange(range);
 }
 
 export function scanPaperSheet() {
     const paper = $("paperSheet");
     if (!paper) return;
     const editables = paper.querySelectorAll("[contenteditable='true']");
-    editables.forEach(el => scanWithLanguageTool(el));
+    editables.forEach(el => {
+        const active = document.activeElement;
+        if (active !== el && !el.contains(active)) {
+            scanWithLanguageTool(el);
+        }
+    });
 }
 
 export async function scanWithLanguageTool(el) {
     if (!el || el.dataset.autocorrectScanning) return;
+    // Strict safety guard: never modify DOM if element is currently focused!
+    const active = document.activeElement;
+    if (active === el || el.contains(active)) return;
+
     const rawText = el.innerText || el.textContent;
     if (!rawText || rawText.trim().length < 3) return;
-
-    const activeEl = document.activeElement;
-    const isFocused = activeEl && (activeEl === el || el.contains(activeEl));
-    const caretOffset = isFocused ? getCaretCharacterOffset(el) : -1;
 
     el.dataset.autocorrectScanning = "true";
     clearHighlights(el);
@@ -292,22 +150,28 @@ export async function scanWithLanguageTool(el) {
         });
         clearTimeout(timeoutId);
 
+        // Abort if user focused back in while request was in-flight
+        const currentActive = document.activeElement;
+        if (currentActive === el || el.contains(currentActive)) return;
+
         if (!response.ok) throw new Error("LanguageTool HTTP Error");
         const data = await response.json();
+
+        if (document.activeElement === el || el.contains(document.activeElement)) return;
 
         if (data && data.matches && data.matches.length > 0) {
             highlightLanguageToolMatches(el, data.matches);
         } else {
-            scanAndHighlightElement(el, true);
+            scanAndHighlightElement(el);
         }
     } catch (err) {
         // Fallback to local dictionary scan if LanguageTool API is offline or times out
-        scanAndHighlightElement(el, true);
+        const currentActive = document.activeElement;
+        if (currentActive !== el && !el.contains(currentActive)) {
+            scanAndHighlightElement(el);
+        }
     } finally {
         delete el.dataset.autocorrectScanning;
-        if (isFocused && caretOffset >= 0) {
-            setCaretCharacterOffset(el, caretOffset);
-        }
     }
 }
 
@@ -321,11 +185,15 @@ function clearHighlights(el) {
 }
 
 function highlightLanguageToolMatches(el, matches) {
+    // Double check focus
+    const active = document.activeElement;
+    if (active === el || el.contains(active)) return;
+
     const fullText = el.textContent;
     const walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null, false);
     const textNodes = [];
     let n;
-    while (n = walk.nextNode()) textNodes.push(n);
+    while ((n = walk.nextNode())) textNodes.push(n);
 
     // Filter valid matches
     const validMatches = matches.filter(m => m.replacements && m.replacements.length > 0);
@@ -392,18 +260,17 @@ function highlightLanguageToolMatches(el, matches) {
     });
 }
 
-export function scanAndHighlightElement(el, skipOuterCaretSave = false) {
+export function scanAndHighlightElement(el) {
     if (!el) return;
-    const activeEl = document.activeElement;
-    const isFocused = !skipOuterCaretSave && activeEl && (activeEl === el || el.contains(activeEl));
-    const caretOffset = isFocused ? getCaretCharacterOffset(el) : -1;
+    const active = document.activeElement;
+    if (active === el || el.contains(active)) return;
 
     clearHighlights(el);
 
     const walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null, false);
     const nodes = [];
     let n;
-    while (n = walk.nextNode()) nodes.push(n);
+    while ((n = walk.nextNode())) nodes.push(n);
 
     nodes.forEach(textNode => {
         const text = textNode.nodeValue;
@@ -439,10 +306,6 @@ export function scanAndHighlightElement(el, skipOuterCaretSave = false) {
             textNode.parentNode.replaceChild(frag, textNode);
         }
     });
-
-    if (isFocused && caretOffset >= 0) {
-        setCaretCharacterOffset(el, caretOffset);
-    }
 }
 
 function showPopover(targetSpan, typo, suggestions, message, category) {
