@@ -284,10 +284,18 @@
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
 }
 
-.entry-block-remove {
+/* Spans the full gutter flush against the entry box so :hover is never lost
+   while moving the cursor from the block to the button. */
+.item-remove-btn.entry-block-remove {
   position: absolute;
-  right: -24px;
-  top: 0;
+  right: -28px;
+  top: -2px;
+  width: 28px;
+  height: 24px;
+  padding: 0;
+  font-size: 1.05rem;
+  text-align: center;
+  opacity: 0.7;
 }
 
 /* Add entry buttons */
