@@ -100,6 +100,12 @@ const btnSaveReminderSet   = $("btnSaveReminderSet");
 const undoStack = [];
 const MAX_UNDO = 50;
 
+// Section heading controls: move up / move down / remove
+const SECTION_CONTROLS_HTML =
+    `<button class="section-move-btn section-move-up" onclick="moveSection(this,-1)" title="Move section up" aria-label="Move section up">&#8593;</button>` +
+    `<button class="section-move-btn section-move-down" onclick="moveSection(this,1)" title="Move section down" aria-label="Move section down">&#8595;</button>` +
+    `<button class="section-remove-btn" onclick="removeSection(this)" title="Remove section">&times;</button>`;
+
 function pushUndo() {
     if (!state.activeJson) return;
     undoStack.push(JSON.parse(JSON.stringify(state.activeJson)));
@@ -1176,12 +1182,12 @@ function renderPaperSheet(jsonObj, docType) {
         if (name === "Summary") {
             const summaryText = Array.isArray(content) ? content.join("\n") : content;
             html += `<div class="resume-section" data-section-name="Summary" data-section-type="summary">
-                <h2><span class="title-text">Summary</span><span class="title-line"></span><button class="section-remove-btn" onclick="removeSection(this)" title="Remove section">&times;</button></h2>
+                <h2><span class="title-text">Summary</span><span class="title-line"></span>${SECTION_CONTROLS_HTML}</h2>
                 <div class="section-summary-text" contenteditable="true" data-placeholder="Write your professional summary here..." style="color:var(--paper-ink);white-space:pre-line;min-height:20px;font-size:var(--paper-body-size);margin-top:4px;">${linkify(summaryText)}</div>
             </div>`;
         } else if (Array.isArray(content) && content.length > 0 && typeof content[0] === "object" && content[0].label !== undefined) {
             html += `<div class="resume-section" data-section-name="${name}" data-section-type="labels">
-                <h2><span class="title-text" contenteditable="true" data-placeholder="Section name" title="Click to rename section">${name}</span><span class="title-line"></span><button class="section-remove-btn" onclick="removeSection(this)" title="Remove section">&times;</button></h2>
+                <h2><span class="title-text" contenteditable="true" data-placeholder="Section name" title="Click to rename section">${name}</span><span class="title-line"></span>${SECTION_CONTROLS_HTML}</h2>
                 <div style="color:var(--paper-ink);display:flex;flex-direction:column;gap:3px;font-size:var(--paper-body-size);margin-top:4px;">`;
             content.forEach(item => {
                 html += `<div class="label-item" style="margin-bottom:2px;display:flex;align-items:baseline;gap:4px;">
@@ -1194,7 +1200,7 @@ function renderPaperSheet(jsonObj, docType) {
             </div>`;
         } else if (Array.isArray(content) && content.length > 0 && (typeof content[0] === "string" || (typeof content[0] === "object" && content[0].bullet !== undefined))) {
             html += `<div class="resume-section" data-section-name="${name}" data-section-type="bullets">
-                <h2><span class="title-text" contenteditable="true" data-placeholder="Section name" title="Click to rename section">${name}</span><span class="title-line"></span><button class="section-remove-btn" onclick="removeSection(this)" title="Remove section">&times;</button></h2>
+                <h2><span class="title-text" contenteditable="true" data-placeholder="Section name" title="Click to rename section">${name}</span><span class="title-line"></span>${SECTION_CONTROLS_HTML}</h2>
                 <ul style="padding-left:var(--paper-bullet-indent);color:var(--paper-ink);font-size:var(--paper-body-size);margin-top:4px;">`;
             content.forEach(item => {
                 const txt = typeof item === "object" && item.bullet ? item.bullet : (typeof item === "string" ? item : "");
@@ -1205,7 +1211,7 @@ function renderPaperSheet(jsonObj, docType) {
             </div>`;
         } else {
             html += `<div class="resume-section" data-section-name="${name}" data-section-type="entries">
-                <h2><span class="title-text" contenteditable="true" data-placeholder="Section name" title="Click to rename section">${name}</span><span class="title-line"></span><button class="section-remove-btn" onclick="removeSection(this)" title="Remove section">&times;</button></h2>
+                <h2><span class="title-text" contenteditable="true" data-placeholder="Section name" title="Click to rename section">${name}</span><span class="title-line"></span>${SECTION_CONTROLS_HTML}</h2>
                 <div class="entries-list" style="display:flex;flex-direction:column;gap:12px;margin-top:4px;">`;
             if (Array.isArray(content)) {
                 content.forEach(entry => {
@@ -1347,9 +1353,52 @@ function renderPaperSheet(jsonObj, docType) {
         // Mirroring entry-degree to entry-position removed to allow independent editing of degree and area/field of study.
     });
 
+    refreshSectionControls();
+
     // Scan paper sheet contenteditable fields for LanguageTool spell & grammar check
     setTimeout(() => scanPaperSheet(), 300);
 }
+
+// ── Section move / insert-between controls ───────────────────────────────────
+
+// Rebuilds the "+ Add section here" strips (one above each section) and
+// disables move buttons at the ends. Call after any change to section order.
+function refreshSectionControls() {
+    const container = document.getElementById("paperSections");
+    if (!container) return;
+    container.querySelectorAll(".section-insert-zone").forEach(z => z.remove());
+    const secs = Array.from(container.querySelectorAll(":scope > .resume-section"));
+    secs.forEach((sec, i) => {
+        const zone = document.createElement("div");
+        zone.className = "section-insert-zone";
+        zone.innerHTML = `<button class="section-insert-btn" onclick="promptAddSection(this)" title="Add a section here"><span>+ Add section here</span></button>`;
+        container.insertBefore(zone, sec);
+        const up = sec.querySelector(".section-move-up");
+        const down = sec.querySelector(".section-move-down");
+        if (up) up.disabled = i === 0;
+        if (down) down.disabled = i === secs.length - 1;
+    });
+}
+
+window.moveSection = (btn, dir) => {
+    const sec = btn.closest(".resume-section");
+    if (!sec) return;
+    const secs = Array.from(document.querySelectorAll("#paperSections > .resume-section"));
+    const target = secs[secs.indexOf(sec) + dir];
+    if (!target) return;
+    serializeSheet({ keepEmpty: true }); // snapshot current edits so undo is accurate
+    pushUndo();
+    if (dir < 0) target.before(sec); else target.after(sec);
+    refreshSectionControls();
+    markDirty();
+    sec.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    sec.classList.remove("section-moved");
+    void sec.offsetWidth; // restart highlight animation
+    sec.classList.add("section-moved");
+    // keep keyboard focus on the same control so repeated presses keep moving it
+    const again = sec.querySelector(dir < 0 ? ".section-move-up" : ".section-move-down");
+    if (again && !again.disabled) again.focus();
+};
 
 // ── Add entry helpers ─────────────────────────────────────────────────────────
 window.addBulletEntry = (btn, sn) => {
@@ -1482,7 +1531,11 @@ window.addEntryBlock = (btn, sn) => {
     markDirty();
 };
 
-window.promptAddSection = async () => {
+// fromBtn: optional "+ Add section here" button; the new section is inserted
+// before the section that follows it. Without it, the section goes last.
+window.promptAddSection = async (fromBtn) => {
+    const zone = fromBtn && fromBtn.closest ? fromBtn.closest(".section-insert-zone") : null;
+    const beforeSec = zone ? zone.nextElementSibling : null;
     const res = await showAddSectionModal();
     if (!res) return;
     const { type: typeStr } = res;
@@ -1510,8 +1563,13 @@ window.promptAddSection = async () => {
         }
         data.sections[name] = newContent;
         // Renderer iterates section_order, so the new section must be in it to appear
-        if (Array.isArray(data.section_order)) data.section_order.push(name);
+        if (!Array.isArray(data.section_order)) data.section_order = Object.keys(data.sections).filter(k => k !== name);
+        const beforeName = beforeSec ? beforeSec.getAttribute("data-section-name") : null; // read after serialize (renames)
+        const at = beforeName ? data.section_order.indexOf(beforeName) : -1;
+        if (at >= 0) data.section_order.splice(at, 0, name); else data.section_order.push(name);
         renderPaperSheet(state.activeJson, state.activeDocType);
+        const added = document.querySelector(`#paperSections > .resume-section[data-section-name="${CSS.escape(name)}"]`);
+        if (added) added.scrollIntoView({ block: "center", behavior: "smooth" });
         markDirty();
     }
 };
