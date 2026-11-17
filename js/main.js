@@ -124,6 +124,12 @@ document.addEventListener("keydown", e => {
     // Intercept Enter key inside highlight subprojects and bullet points
     if (e.key === "Enter") {
         const target = e.target;
+        // Section titles are single-line: Enter commits the rename
+        if (target.classList && target.classList.contains("title-text")) {
+            e.preventDefault();
+            target.blur();
+            return;
+        }
         const editSpan = target.closest("span[contenteditable]");
         if (editSpan) {
             const isSubProject = editSpan.closest(".entry-subproject");
@@ -1175,7 +1181,7 @@ function renderPaperSheet(jsonObj, docType) {
             </div>`;
         } else if (Array.isArray(content) && content.length > 0 && typeof content[0] === "object" && content[0].label !== undefined) {
             html += `<div class="resume-section" data-section-name="${name}" data-section-type="labels">
-                <h2><span class="title-text">${name}</span><span class="title-line"></span><button class="section-remove-btn" onclick="removeSection(this)" title="Remove section">&times;</button></h2>
+                <h2><span class="title-text" contenteditable="true" data-placeholder="Section name" title="Click to rename section">${name}</span><span class="title-line"></span><button class="section-remove-btn" onclick="removeSection(this)" title="Remove section">&times;</button></h2>
                 <div style="color:var(--paper-ink);display:flex;flex-direction:column;gap:3px;font-size:var(--paper-body-size);margin-top:4px;">`;
             content.forEach(item => {
                 html += `<div class="label-item" style="margin-bottom:2px;display:flex;align-items:baseline;gap:4px;">
@@ -1188,7 +1194,7 @@ function renderPaperSheet(jsonObj, docType) {
             </div>`;
         } else if (Array.isArray(content) && content.length > 0 && (typeof content[0] === "string" || (typeof content[0] === "object" && content[0].bullet !== undefined))) {
             html += `<div class="resume-section" data-section-name="${name}" data-section-type="bullets">
-                <h2><span class="title-text">${name}</span><span class="title-line"></span><button class="section-remove-btn" onclick="removeSection(this)" title="Remove section">&times;</button></h2>
+                <h2><span class="title-text" contenteditable="true" data-placeholder="Section name" title="Click to rename section">${name}</span><span class="title-line"></span><button class="section-remove-btn" onclick="removeSection(this)" title="Remove section">&times;</button></h2>
                 <ul style="padding-left:var(--paper-bullet-indent);color:var(--paper-ink);font-size:var(--paper-body-size);margin-top:4px;">`;
             content.forEach(item => {
                 const txt = typeof item === "object" && item.bullet ? item.bullet : (typeof item === "string" ? item : "");
@@ -1199,7 +1205,7 @@ function renderPaperSheet(jsonObj, docType) {
             </div>`;
         } else {
             html += `<div class="resume-section" data-section-name="${name}" data-section-type="entries">
-                <h2><span class="title-text">${name}</span><span class="title-line"></span><button class="section-remove-btn" onclick="removeSection(this)" title="Remove section">&times;</button></h2>
+                <h2><span class="title-text" contenteditable="true" data-placeholder="Section name" title="Click to rename section">${name}</span><span class="title-line"></span><button class="section-remove-btn" onclick="removeSection(this)" title="Remove section">&times;</button></h2>
                 <div class="entries-list" style="display:flex;flex-direction:column;gap:12px;margin-top:4px;">`;
             if (Array.isArray(content)) {
                 content.forEach(entry => {
@@ -1479,7 +1485,9 @@ window.addEntryBlock = (btn, sn) => {
 window.promptAddSection = async () => {
     const res = await showAddSectionModal();
     if (!res) return;
-    const { name, type: typeStr } = res;
+    const { type: typeStr } = res;
+    const name = res.name.trim();
+    if (!name) return;
     
     let newContent = [];
     if (typeStr === "2") {
@@ -1493,7 +1501,16 @@ window.promptAddSection = async () => {
     if (state.activeJson) {
         const key = (state.activeDocType === "cv" && state.activeJson.cv) ? "cv" : "document";
         if (!state.activeJson[key].sections) state.activeJson[key].sections = {};
-        state.activeJson[key].sections[name.trim()] = newContent;
+        pushUndo();
+        serializeSheet({ keepEmpty: true }); // keep unsaved edits (incl. renames) before checking/re-rendering
+        const data = state.activeJson[key];
+        if (data.sections[name] !== undefined) {
+            showToast(`Section "${name}" already exists`, "error");
+            return;
+        }
+        data.sections[name] = newContent;
+        // Renderer iterates section_order, so the new section must be in it to appear
+        if (Array.isArray(data.section_order)) data.section_order.push(name);
         renderPaperSheet(state.activeJson, state.activeDocType);
         markDirty();
     }
@@ -1511,9 +1528,11 @@ window.removeSection = async (btn) => {
     if (!ok) return;
     pushUndo();
     if (state.activeJson) {
+        serializeSheet({ keepEmpty: true }); // keep unsaved edits before re-rendering
+        const currentName = sec.getAttribute("data-section-name"); // may have been renamed
         const key = (state.activeDocType === "cv" && state.activeJson.cv) ? "cv" : "document";
         if (state.activeJson[key].sections) {
-            delete state.activeJson[key].sections[name];
+            delete state.activeJson[key].sections[currentName];
         }
         renderPaperSheet(state.activeJson, state.activeDocType);
         markDirty();
@@ -1556,7 +1575,8 @@ window.removeItem = (btn) => {
 };
 
 // ── Serializer ────────────────────────────────────────────────────────────────
-function serializeSheet() {
+// keepEmpty: used for in-session re-renders so an empty bullets section keeps its type
+function serializeSheet({ keepEmpty = false } = {}) {
     if (!state.activeJson) return null;
     const type   = state.activeDocType;
     const isCV   = type === "cv" && state.activeJson.cv;
@@ -1594,9 +1614,18 @@ function serializeSheet() {
     }
 
     const sectionOrder = [];
-    document.querySelectorAll(".resume-section").forEach(sec => {
+    const renames = []; // [sectionEl, oldName, newName]
+    const sectionEls = Array.from(document.querySelectorAll(".resume-section"));
+    const domNames = new Set(sectionEls.map(s => s.getAttribute("data-section-name")));
+    sectionEls.forEach(sec => {
         const name = sec.getAttribute("data-section-name");
-        sectionOrder.push(name);
+        const titleEl = sec.querySelector("h2 .title-text[contenteditable]");
+        let newName = titleEl ? titleEl.innerText.trim() : name;
+        // Empty or clashing names fall back to the original name
+        if (!newName || (newName !== name && (domNames.has(newName) || sectionOrder.includes(newName)))) newName = name;
+        if (titleEl && titleEl.innerText.trim() !== newName) titleEl.innerText = newName;
+        if (newName !== name) renames.push([sec, name, newName]);
+        sectionOrder.push(newName);
         
         const stype = sec.getAttribute("data-section-type");
 
@@ -1605,6 +1634,7 @@ function serializeSheet() {
         } else if (stype === "bullets") {
             data.sections[name] = Array.from(sec.querySelectorAll("ul li"))
                 .map(li => { const sp = li.querySelector("span[contenteditable]"); return { bullet: sp ? sp.innerText.trim() : li.innerText.trim() }; }).filter(b => b.bullet);
+            if (keepEmpty && data.sections[name].length === 0) data.sections[name] = [""];
         } else if (stype === "labels") {
             data.sections[name] = Array.from(sec.querySelectorAll(".label-item")).map(item => {
                 const s = getText(item, "strong");
@@ -1704,6 +1734,13 @@ function serializeSheet() {
         }
     });
 
+    if (renames.length) {
+        const renameMap = Object.fromEntries(renames.map(([, o, n]) => [o, n]));
+        const renamed = {};
+        for (const [k, v] of Object.entries(data.sections)) renamed[renameMap[k] || k] = v;
+        data.sections = renamed;
+        renames.forEach(([sec, , n]) => sec.setAttribute("data-section-name", n));
+    }
     data.section_order = sectionOrder;
     return state.activeJson;
 }
