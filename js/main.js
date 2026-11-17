@@ -3440,7 +3440,7 @@ window.showAddSectionModal = () => {
         const confirmBtn = document.getElementById("addSectionConfirmBtn");
 
         nameInput.value = "";
-        typeSelect.value = "1";
+        typeSelect.value = "2"; // default: plain bullets
         modal.style.display = "flex";
         nameInput.focus();
 
