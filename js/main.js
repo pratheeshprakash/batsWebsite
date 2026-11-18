@@ -1695,8 +1695,10 @@ function serializeSheet({ keepEmpty = false } = {}) {
             if (keepEmpty && data.sections[name].length === 0) data.sections[name] = [""];
         } else if (stype === "labels") {
             data.sections[name] = Array.from(sec.querySelectorAll(".label-item")).map(item => {
-                const s = getText(item, "strong");
-                return { label: s.endsWith(":") ? s.slice(0,-1).trim() : s, details: getText(item, "span") };
+                // Direct children only: autocorrect wraps flagged words in nested <span>s,
+                // which a plain "span" selector would pick up instead of the details field.
+                const s = getText(item, ":scope > strong");
+                return { label: s.endsWith(":") ? s.slice(0,-1).trim() : s, details: getText(item, ":scope > span[contenteditable]") };
             });
         } else if (stype === "entries") {
             const orig = (state.activeJson[key].sections[name] || []);
